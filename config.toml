@@ -14,6 +14,7 @@ sites = ["S0189179","S89CFECF","S818235B","SF06F50A","S48446E1","S12C3F7C"]
 #"SF06F50A" #Royal Free Hospital
 #"S48446E1" #UCLH
 #"S12C3F7C"	#Whittington Hospital
+indicator_list = ['breaches','no_of_attendances','dta_in_ed_at_time_of_reporting','medically_optimised']
 
 [smart_api.date]
 end = "today"

@@ -8,6 +8,7 @@ import toml
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
+import csv
 
 #Library from https://github.com/ncl-icb-analytics/sqlsnippets
 #pip install ncl-sqlsnippets
@@ -168,6 +169,30 @@ def get_delete_query(date_start, date_end, site, env):
     
     return query
 
+# wrangle the downloaded data
+def processing_data_for_storage(api_pull, date_start, date_end):
+    config = toml.load("./config.toml") # lazy by me - needs to be put in global environment
+    IndicatorList = config["smart_api"]["base"]['indicator_list']
+    #data = pd.DataFrame(api_pull)
+    #keep only metrics of interest
+    data = api_pull.query('indicatorKeyName in @IndicatorList')
+    #derive additional metrics
+    data = data[['reportDate', 'siteName','indicatorKeyName','value']].reset_index(drop=True)
+    data = data.pivot(index=['siteName', 'reportDate'], columns='indicatorKeyName', values='value')
+    data = data.reset_index()
+    data['breaches'] = data['breaches'].astype('float', errors='ignore')
+    data['no_of_attendances'] = data['no_of_attendances'].astype('float')
+    data['performance_4_hour'] = 1-(data['breaches']/data['no_of_attendances'])
+    data = data.melt(id_vars = ['siteName','reportDate'])
+    #add context and tidy
+    data['source'] = 'smart_api'
+    data['metric_type'] = 'actual'
+    data['date_start'] = date_start
+    data['date_end'] = date_end
+    data = data[['source', 'indicatorKeyName', 'siteName', 'reportDate', 'metric_type', 'value']]
+    data.to_csv('inter.csv', mode='a', index=False, header=False)
+
+
 #Upload the request data
 def upload_request_data(data, date_start, date_end, site, env):
 
@@ -243,12 +268,17 @@ def execute_runs(runs, env):
 
             ##Future:
             ##Convert API response data into universal format
-
+            processing_data_for_storage(res, date_start, date_end)
+            
             #Upload and manage datasets
-            upload_request_data(res, date_start, date_end, site, env)
+            #upload_request_data(res, date_start, date_end, site, env)
 
 #Main function
 def main():
+    # Generate gile for intermediate wrangle:
+    with open('inter.csv', 'w') as file:
+        writer = csv.writer(file)
+        writer.writerow(['source', 'indicatorKeyName', 'siteName', 'metric_type', 'value'])
 
     #Import settings from the .env file
     env = import_settings()
