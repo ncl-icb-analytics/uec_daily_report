@@ -1,0 +1,24 @@
+title = "UEC Daily Report"
+
+[database]
+sql_database = "Data_Lab_NCL_Dev"
+sql_schema = "JakeK"
+
+[smart_api.base]
+sql_table = "smart_api_data"
+api_url = "https://smart.nhs.uk/"
+sites = ["S0189179","S89CFECF","S818235B","SF06F50A","S48446E1","S12C3F7C"]
+#"S0189179" #Barnet Hospital
+#"S89CFECF" #Chase Farm Hospital
+#"S818235B" #North Middlesex Hospital
+#"SF06F50A" #Royal Free Hospital
+#"S48446E1" #UCLH
+#"S12C3F7C"	#Whittington Hospital
+
+[smart_api.date]
+end = "today"
+window = "2 weeks"
+
+[smart_api.wait]
+period = 5
+cooloff = 60

@@ -26,3 +26,7 @@ ncl_sqlsnippets==1.3.0
 #nbformat==5.1.3
 toml==0.10.2
 #pathlib2==2.3.6
+
+#Temporary environment
+python-dotenv==1.0.1
+requests==2.31.0
