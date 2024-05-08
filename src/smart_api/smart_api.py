@@ -271,7 +271,7 @@ def execute_runs(runs, env):
             processing_data_for_storage(res, date_start, date_end)
             
             #Upload and manage datasets
-            #upload_request_data(res, date_start, date_end, site, env)
+            upload_request_data(res, date_start, date_end, site, env)
 
 #Main function
 def main():
