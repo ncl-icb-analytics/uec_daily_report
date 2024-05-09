@@ -5,7 +5,7 @@ import time
 import os
 from os import getenv
 import toml
-from dotenv import load_dotenv
+
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import csv
@@ -15,11 +15,7 @@ import csv
 import ncl_sqlsnippets as snips
 
 #Process settings
-def import_settings():
-    load_dotenv(override=True)
-
-    config = toml.load("./config.toml")
-
+def import_settings(config):
     return {
         "API_URL": config["smart_api"]["base"]["api_url"],
         "API_KEY": getenv("SMART_API_KEY"),
@@ -170,8 +166,7 @@ def get_delete_query(date_start, date_end, site, env):
     return query
 
 # wrangle the downloaded data
-def processing_data_for_storage(api_pull, date_start, date_end):
-    config = toml.load("./config.toml") # lazy by me - needs to be put in global environment
+def processing_data_for_storage(config, api_pull, date_start, date_end):
     IndicatorList = config["smart_api"]["base"]['indicator_list']
     #data = pd.DataFrame(api_pull)
     #keep only metrics of interest
@@ -189,7 +184,7 @@ def processing_data_for_storage(api_pull, date_start, date_end):
     data['metric_type'] = 'actual'
     data['date_start'] = date_start
     data['date_end'] = date_end
-    data = data[['source', 'indicatorKeyName', 'siteName', 'reportDate', 'metric_type', 'value']]
+    data = data[['source', 'indicatorKeyName', 'siteName', 'reportDate', 'date_start', 'date_end','metric_type', 'value']]
     data.to_csv('inter.csv', mode='a', index=False, header=False)
 
 
@@ -227,7 +222,7 @@ def upload_request_data(data, date_start, date_end, site, env):
     print(f"Upload successful for site {site} from {date_start} to {date_end}")
 
 #Execute runs
-def execute_runs(runs, env):
+def execute_runs(config, runs, env):
 
     #Get request variables
     url = env["API_URL"]
@@ -264,34 +259,15 @@ def execute_runs(runs, env):
                     res = smart_request(url, key, date_start, date_end, site)
                 except:
                     raise Exception("Failed twice so cancelling execution.")
-            #print(f"Request fulfilled for site {site} from {date_start} to {date_end}")
+            print(f"Request fulfilled for site {site} from {date_start} to {date_end}")
 
             ##Future:
             ##Convert API response data into universal format
-            processing_data_for_storage(res, date_start, date_end)
+            processing_data_for_storage(config, res, date_start, date_end)
             
             #Upload and manage datasets
             upload_request_data(res, date_start, date_end, site, env)
 
-#Main function
-def main():
-    # Generate gile for intermediate wrangle:
-    with open('inter.csv', 'w') as file:
-        writer = csv.writer(file)
-        writer.writerow(['source', 'indicatorKeyName', 'siteName', 'metric_type', 'value'])
 
-    #Import settings from the .env file
-    env = import_settings()
 
-    #Process the settings to get the start and end dates
-    date_end = process_date_end(env["DATE_END"])
-    date_start = process_date_window(env["DATE_WINDOW"], date_end)
 
-    #Determine how many runs are needed to get all the data
-    runs = calculate_runs(date_start, date_end)
-
-    #Execute the runs on the API and upload the result to the sandpit
-    execute_runs(runs, env)
-
-print("Program starting...")
-main()
