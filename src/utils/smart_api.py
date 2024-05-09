@@ -149,21 +149,6 @@ def smart_request (url, key, date_start, date_end, hash_id):
 def add_delay(seconds):
     time.sleep(int(seconds))
 
-#Build the delete query to remove duplicate data
-def get_delete_query(date_start, date_end, site, env):
-
-    sql_database =  env["SQL_DATABASE"]
-    sql_schema =  env["SQL_SCHEMA"]
-    sql_table =  env["SQL_TABLE"]
-
-    query = f"""
-                DELETE FROM [{sql_database}].[{sql_schema}].[{sql_table}] 
-                WHERE reportDate >= '{date_start}' 
-                    AND reportDate <= '{date_end}' 
-                    AND siteId = '{site}'
-                """
-    
-    return query
 
 # wrangle the downloaded data
 def processing_data_for_storage(config, api_pull, date_start, date_end):
@@ -188,85 +173,6 @@ def processing_data_for_storage(config, api_pull, date_start, date_end):
     data.to_csv('inter.csv', mode='a', index=False, header=False)
 
 
-#Upload the request data
-def upload_request_data(data, date_start, date_end, site, env):
-
-    #Delete existing data
-    query_del = get_delete_query(date_start, date_end, site, env)
-
-    #Upload the data
-    try:
-        #Connect to the database
-        engine = snips.connect(env["SQL_ADDRESS"], env["SQL_DATABASE"])
-        if (snips.table_exists(engine, env["SQL_TABLE"], env["SQL_SCHEMA"])):
-            #Delete the existing data
-            snips.execute_query(engine, query_del)
-        #Upload the new data
-        snips.upload_to_sql(data, engine, env["SQL_TABLE"], env["SQL_SCHEMA"], replace=False, chunks=150)
-    except:
-        print("Disconnected from the sandpit. Waiting before trying again...")
-        #If the connection drops, wait and try again
-        add_delay(env["WAIT_COOLOFF"])
-
-        try:
-            #Connect to the database
-            engine = snips.connect(env["SQL_ADDRESS"], env["SQL_DATABASE"])
-            if (snips.table_exists(engine, env["SQL_TABLE"], env["SQL_SCHEMA"])):
-                #Delete the existing data
-                snips.execute_query(engine, query_del)
-            #Upload the new data
-            snips.upload_to_sql(data, engine, env["SQL_TABLE"], env["SQL_SCHEMA"], replace=False, chunks=150)
-        except:
-            raise Exception("Connectioned dropped again so cancelling execution")
-
-    print(f"Upload successful for site {site} from {date_start} to {date_end}")
-
-#Execute runs
-def execute_runs(config, runs, env):
-
-    #Get request variables
-    url = env["API_URL"]
-    key = env["API_KEY"]
-    hash_sites = env["SITES"]
-    delay = env["WAIT_PERIOD"]
-    cooloff = env["WAIT_COOLOFF"]
-
-    #Set  True initially so no delay on first request
-    init = True
-
-    #Iterate through runs to get all of the data
-    for run in runs:
-
-        #Get dates for the run
-        date_start = run[0]
-        date_end = run[1]
-
-        #Make a get request per site
-        for site in hash_sites:
-
-            #Delay after 1st run to prevent Too Many Requests Error
-            if init:
-                init = False
-            else:
-                add_delay(delay)
-
-            try:
-                res = smart_request(url, key, date_start, date_end, site)
-            except:
-                print("Overload so waiting...")
-                add_delay(cooloff)
-                try:
-                    res = smart_request(url, key, date_start, date_end, site)
-                except:
-                    raise Exception("Failed twice so cancelling execution.")
-            print(f"Request fulfilled for site {site} from {date_start} to {date_end}")
-
-            ##Future:
-            ##Convert API response data into universal format
-            processing_data_for_storage(config, res, date_start, date_end)
-            
-            #Upload and manage datasets
-            upload_request_data(res, date_start, date_end, site, env)
 
 
 

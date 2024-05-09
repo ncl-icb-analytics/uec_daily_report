@@ -5,7 +5,7 @@ sql_database = "Data_Lab_NCL_Dev"
 sql_schema = "JakeK"
 
 [smart_api.base]
-sql_table = "smart_api_data"
+sql_table = "smart_api_data_test"
 api_url = "https://smart.nhs.uk/"
 sites = ["S0189179","S89CFECF","S818235B","SF06F50A","S48446E1","S12C3F7C"]
 #"S0189179" #Barnet Hospital
