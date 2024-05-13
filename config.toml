@@ -31,3 +31,14 @@ cooloff = 60
 [las.base]
 sql_table = "uec_las_handover"
 indicator_list = ['hospital_site','total_handover','over_45mins','over_120mins']
+
+[ecist_sitrep]
+
+[ecist_sitrep.base]
+sql_table = "uec_sitrep_ecist"
+indicator_list = ['ae_attendances','over12hoursfromarrival','extended_patients_occupied','g&acorebedsopen', 'number_of_discharges']
+site_list = ['RAL01','RAL26','RALC7','RAP','RRV','RKE']
+
+[ecist_sitrep.date]
+date_range = 35
+
