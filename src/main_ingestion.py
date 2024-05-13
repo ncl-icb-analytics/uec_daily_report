@@ -14,9 +14,8 @@ config = toml.load("./config.toml")
 load_dotenv(override=True)
 
 ### Generate file for intermediate wrangle:
-with open('inter.csv', 'w') as file:
-    writer = csv.writer(file)
-    writer.writerow(['source', 'indicatorKeyName', 'siteName', 'ReportDate','date_start', 'date_end', 'metric_type', 'value'])
+
+pd.DataFrame([], columns=['source', 'indicatorKeyName', 'siteId', 'ReportDate', 'metric_type', 'value']).to_csv('inter.csv', mode='w', index=False, header=True)
 
 '''
 Pull from smart API
@@ -77,5 +76,8 @@ for run in runs:
         #Upload and manage datasets - Broken??
         query_del = get_delete_query(date_start, date_end, site, env)
         upload_request_data(res, query_del, date_start, date_end, site, env)  # this needs to be generic enough for all 4 pipelines
+
+        #DEBUG LINE
+        break
 
 print("All API pulls complete")
