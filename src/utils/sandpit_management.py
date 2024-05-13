@@ -5,8 +5,15 @@ import time
 def add_delay(seconds):
     time.sleep(int(seconds))
 
+# Sandpit data pull
 
-#Build the delete query to remove duplicate data
+def get_sandpit_data(env, query):
+    engine = snips.connect(env["SQL_ADDRESS"], env["SQL_DATABASE"])
+    res = execute_sfw(engine, query)
+    return res
+
+
+# Build the delete query to remove duplicate data
 def get_delete_query(date_start, date_end, site, env):
 
     sql_database =  env["SQL_DATABASE"]
