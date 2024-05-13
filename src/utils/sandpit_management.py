@@ -9,7 +9,7 @@ def add_delay(seconds):
 
 def get_sandpit_data(env, query):
     engine = snips.connect(env["SQL_ADDRESS"], env["SQL_DATABASE"])
-    res = execute_sfw(engine, query)
+    res = snips.execute_sfw(engine, query)
     return res
 
 
