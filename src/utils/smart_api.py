@@ -156,20 +156,21 @@ def processing_data_for_storage(config, api_pull, date_start, date_end):
     #data = pd.DataFrame(api_pull)
     #keep only metrics of interest
     data = api_pull.query('indicatorKeyName in @IndicatorList')
+
     #derive additional metrics
-    data = data[['reportDate', 'siteName','indicatorKeyName','value']].reset_index(drop=True)
-    data = data.pivot(index=['siteName', 'reportDate'], columns='indicatorKeyName', values='value')
+    data = data[['reportDate', 'siteId','indicatorKeyName','value']].reset_index(drop=True)
+    data = data.pivot(index=['siteId', 'reportDate'], columns='indicatorKeyName', values='value')
     data = data.reset_index()
     data['breaches'] = data['breaches'].astype('float', errors='ignore')
     data['no_of_attendances'] = data['no_of_attendances'].astype('float')
     data['performance_4_hour'] = 1-(data['breaches']/data['no_of_attendances'])
-    data = data.melt(id_vars = ['siteName','reportDate'])
+    data = data.melt(id_vars = ['siteId','reportDate'])
+
     #add context and tidy
     data['source'] = 'smart_api'
     data['metric_type'] = 'actual'
-    data['date_start'] = date_start
-    data['date_end'] = date_end
-    data = data[['source', 'indicatorKeyName', 'siteName', 'reportDate', 'date_start', 'date_end','metric_type', 'value']]
+    data = data[['source', 'indicatorKeyName', 'siteId', 'reportDate', 'metric_type', 'value']]
+
     data.to_csv('inter.csv', mode='a', index=False, header=False)
 
 
