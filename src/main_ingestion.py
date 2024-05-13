@@ -6,6 +6,8 @@ import ncl_sqlsnippets as snips
 from datetime import datetime
 from dotenv import load_dotenv
 import re
+import pandas as pd
+import numpy as np
 
 from utils.smart_api import *
 from utils.sandpit_management import *
@@ -13,6 +15,7 @@ from utils.sandpit_management import *
 ### Load environment variables 
 config = toml.load("./config.toml")
 load_dotenv(override=True)
+site_id_map = pd.read_csv("./lookups/org_lookup_smart.csv")
 
 ### Generate file for intermediate wrangle:
 
@@ -120,12 +123,22 @@ las_data = las_data[['period', 'hospital_site','indicatorKeyName','value']].rese
 las_data['period'] = pd.to_datetime(las_data['period'], unit='D', origin='1899-12-30')#, errors='coerce')
 las_data['cutoff'] = pd.Timestamp(datetime.now()).date()-pd.to_timedelta(14, unit='d')
 las_data = las_data.query("period >= cutoff")
+## Add site reference codes
+las_id_map = site_id_map[site_id_map["dataset"] == "las"]
+las_data = las_data.merge(site_id_map, how="left", left_on="hospital_site", right_on="dataset_reference")
 
-# add to inter
+## add to inter for graphing
+las_data['source'] = 'las'
+las_data['metric_type'] = 'actual'
+las_data.rename(columns={'period': 'reportDate'}, inplace=True)
+las_data = las_data[['source', 'indicatorKeyName', 'site_code_ref', 'reportDate', 'metric_type', 'value']]
+las_data.to_csv('inter.csv', mode='a', index=False, header=False)
+
+## Sandpit upload
+# reshape for sandpit
+las_data = las_data.pivot(index=['reportDate', 'site_code_ref'], columns='indicatorKeyName', values='value').reset_index()
+las_data = las_data.rename_axis(None, axis = 1)
 
 # upload to sandpit - once suficiently generalised
-las_data = las_data.pivot(index=['period', 'hospital_site'], columns='indicatorKeyName', values='value')
-las_data = las_data.reset_index()
-print(las_data)
 #query_del = get_delete_query(date_start, date_end, site, env)
 #upload_request_data(res, query_del, date_start, date_end, site, env) 

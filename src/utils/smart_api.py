@@ -176,7 +176,7 @@ def processing_data_for_storage(config, api_pull, date_start, date_end):
     site_id_map = pd.read_csv("./lookups/org_lookup_smart.csv")
     site_id_map = site_id_map[site_id_map["dataset"] == "smart_api"]
 
-    data = data.merge(site_id_map, how="left", left_on="siteId", right_on="site_code_smart")
+    data = data.merge(site_id_map, how="left", left_on="dataset_reference", right_on="site_code_smart")
 
     data = data[['source', 'indicatorKeyName', 'site_code_ref', 'reportDate', 'metric_type', 'value']]
 
