@@ -169,9 +169,18 @@ def processing_data_for_storage(config, api_pull, date_start, date_end):
     #add context and tidy
     data['source'] = 'smart_api'
     data['metric_type'] = 'actual'
-    data = data[['source', 'indicatorKeyName', 'siteId', 'reportDate', 'metric_type', 'value']]
+    data.loc[data['indicatorKeyName'] == 'performance_4_hour', 'metric_type'] = 'derived'
 
-    data.to_csv('inter.csv', mode='a', index=False, header=False)
+    #map local siteid to universial ids
+    #data = data.rename(columns={"siteId":"site_code_smart"})
+    site_id_map = pd.read_csv("./lookups/org_lookup_smart.csv")
+    site_id_map = site_id_map[site_id_map["dataset"] == "smart_api"]
+
+    data = data.merge(site_id_map, how="left", left_on="siteId", right_on="site_code_smart")
+
+    data = data[['source', 'indicatorKeyName', 'site_code_ref', 'reportDate', 'metric_type', 'value']]
+
+    return data
 
 
 
