@@ -1,10 +1,11 @@
 import sys
 import pathlib
 import os 
-
+from os import getenv
 import ncl_sqlsnippets as snips
-
+from datetime import datetime
 from dotenv import load_dotenv
+import re
 
 from utils.smart_api import *
 from utils.sandpit_management import *
@@ -86,3 +87,45 @@ for run in runs:
         upload_request_data(res, query_del, date_start, date_end, site, env)  
 
 print("All API pulls complete")
+
+'''
+LAS import
+'''
+
+# Load the sheet into a dataframe
+las_file_path = getenv("NETWORKED_DATA_PATH_LAS")
+las_data = pd.read_excel(las_file_path, sheet_name= "Data_Ambulance_Handovers")
+
+# clean column names
+def clean_column_name(column_name):
+    column_name = column_name.strip()
+    #column_name = re.sub(r"[^\w\s]", "", column_name)
+    column_name = re.sub(r"\n", "", column_name)
+    column_name = re.sub(r"\s+", "_", column_name)
+    return column_name
+
+las_data.rename(columns=clean_column_name, inplace=True)
+las_data.columns = map(str.lower, las_data.columns)
+
+# filter to keep only relevent data
+## NCL only
+las_data = las_data.query('stp_code == "QMJ"').reset_index(drop = True) # NCL STP only
+las_data = las_data.drop(['stp_code', 'stp_short', 'weekday', 'id'], axis=1) # columns not needed 
+## Metrics of interest only
+las_data = las_data.melt(id_vars = ['hospital_site', 'period'], var_name='indicatorKeyName', value_name='value') # lengthen data to allow filter
+IndicatorList = config["las"]["base"]['indicator_list'] # import metric list
+las_data = las_data.query('indicatorKeyName in @IndicatorList') # filter metrics list
+las_data = las_data[['period', 'hospital_site','indicatorKeyName','value']].reset_index(drop=True) 
+## Period of interest only
+las_data['period'] = pd.to_datetime(las_data['period'], unit='D', origin='1899-12-30')#, errors='coerce')
+las_data['cutoff'] = pd.Timestamp(datetime.now()).date()-pd.to_timedelta(14, unit='d')
+las_data = las_data.query("period >= cutoff")
+
+# add to inter
+
+# upload to sandpit - once suficiently generalised
+las_data = las_data.pivot(index=['period', 'hospital_site'], columns='indicatorKeyName', values='value')
+las_data = las_data.reset_index()
+print(las_data)
+#query_del = get_delete_query(date_start, date_end, site, env)
+#upload_request_data(res, query_del, date_start, date_end, site, env) 
