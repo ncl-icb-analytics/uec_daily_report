@@ -12,7 +12,7 @@ import csv
 
 #Library from https://github.com/ncl-icb-analytics/sqlsnippets
 #pip install ncl-sqlsnippets
-import ncl_sqlsnippets as snips
+#import ncl_sqlsnippets as snips
 
 #Process settings
 def import_settings(config):

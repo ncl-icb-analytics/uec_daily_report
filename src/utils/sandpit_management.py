@@ -1,3 +1,9 @@
+import ncl_sqlsnippets as snips
+import time
+
+#Force delay between requests
+def add_delay(seconds):
+    time.sleep(int(seconds))
 
 
 #Build the delete query to remove duplicate data

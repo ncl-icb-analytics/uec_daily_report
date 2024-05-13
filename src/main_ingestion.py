@@ -2,6 +2,8 @@ import sys
 import pathlib
 import os 
 
+import ncl_sqlsnippets as snips
+
 from dotenv import load_dotenv
 
 from utils.smart_api import *
