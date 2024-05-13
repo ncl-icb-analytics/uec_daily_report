@@ -12,7 +12,7 @@ import csv
 
 #Library from https://github.com/ncl-icb-analytics/sqlsnippets
 #pip install ncl-sqlsnippets
-import ncl_sqlsnippets as snips
+#import ncl_sqlsnippets as snips
 
 #Process settings
 def import_settings(config):
@@ -156,21 +156,31 @@ def processing_data_for_storage(config, api_pull, date_start, date_end):
     #data = pd.DataFrame(api_pull)
     #keep only metrics of interest
     data = api_pull.query('indicatorKeyName in @IndicatorList')
+
     #derive additional metrics
-    data = data[['reportDate', 'siteName','indicatorKeyName','value']].reset_index(drop=True)
-    data = data.pivot(index=['siteName', 'reportDate'], columns='indicatorKeyName', values='value')
+    data = data[['reportDate', 'siteId','indicatorKeyName','value']].reset_index(drop=True)
+    data = data.pivot(index=['siteId', 'reportDate'], columns='indicatorKeyName', values='value')
     data = data.reset_index()
     data['breaches'] = data['breaches'].astype('float', errors='ignore')
     data['no_of_attendances'] = data['no_of_attendances'].astype('float')
     data['performance_4_hour'] = 1-(data['breaches']/data['no_of_attendances'])
-    data = data.melt(id_vars = ['siteName','reportDate'])
+    data = data.melt(id_vars = ['siteId','reportDate'])
+
     #add context and tidy
     data['source'] = 'smart_api'
     data['metric_type'] = 'actual'
-    data['date_start'] = date_start
-    data['date_end'] = date_end
-    data = data[['source', 'indicatorKeyName', 'siteName', 'reportDate', 'date_start', 'date_end','metric_type', 'value']]
-    data.to_csv('inter.csv', mode='a', index=False, header=False)
+    data.loc[data['indicatorKeyName'] == 'performance_4_hour', 'metric_type'] = 'derived'
+
+    #map local siteid to universial ids
+    #data = data.rename(columns={"siteId":"site_code_smart"})
+    site_id_map = pd.read_csv("./lookups/org_lookup_smart.csv")
+    site_id_map = site_id_map[site_id_map["dataset"] == "smart_api"]
+
+    data = data.merge(site_id_map, how="left", left_on="siteId", right_on="site_code_smart")
+
+    data = data[['source', 'indicatorKeyName', 'site_code_ref', 'reportDate', 'metric_type', 'value']]
+
+    return data
 
 
 
