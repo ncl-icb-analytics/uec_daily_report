@@ -4,6 +4,8 @@ title = "UEC Daily Report"
 sql_database = "Data_Lab_NCL_Dev"
 sql_schema = "JakeK"
 
+[smart_api]
+
 [smart_api.base]
 sql_table = "smart_api_data_test"
 api_url = "https://smart.nhs.uk/"
@@ -23,3 +25,9 @@ window = "2 weeks"
 [smart_api.wait]
 period = 5
 cooloff = 60
+
+[las]
+
+[las.base]
+sql_table = "uec_las_handover"
+indicator_list = ['hospital_site','total_handover','over_45mins','over_120mins']
