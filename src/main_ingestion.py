@@ -7,6 +7,7 @@ import ncl_sqlsnippets as snips
 from dotenv import load_dotenv
 
 from utils.smart_api import *
+from utils.live_tracker_extract import *
 from utils.sandpit_management import *
 
 ### Load environment variables 
