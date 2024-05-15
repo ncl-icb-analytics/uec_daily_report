@@ -1,5 +1,6 @@
 import ncl_sqlsnippets as snips
 import time
+import pyodbc
 
 #Force delay between requests
 def add_delay(seconds):
@@ -14,7 +15,7 @@ def get_sandpit_data(env, query):
 
 
 # Build the delete query to remove duplicate data
-def get_delete_query(date_start, date_end, site, env):
+def get_delete_query(date_start, date_end, sites, env):
 
     sql_database =  env["SQL_DATABASE"]
     sql_schema =  env["SQL_SCHEMA"]
@@ -23,9 +24,15 @@ def get_delete_query(date_start, date_end, site, env):
     query = f"""
                 DELETE FROM [{sql_database}].[{sql_schema}].[{sql_table}] 
                 WHERE reportDate >= '{date_start}' 
-                    AND reportDate <= '{date_end}' 
-                    AND siteId = '{site}'
+                AND reportDate <= '{date_end}'
                 """
+    
+    if sites:
+        sites_string = ""
+        for site in sites:
+            sites_string += f"'{site}', "
+        
+        query += f"AND provider_code IN  ({sites_string[:-2]})"
     
     return query
 
@@ -34,7 +41,7 @@ This needs unesting
 '''
 
 #Upload the request data
-def upload_request_data(data, query_del, date_start, date_end, site, env):
+def upload_request_data(data, query_del, env, chunks=100):
 
     #Delete existing data
     
@@ -47,8 +54,8 @@ def upload_request_data(data, query_del, date_start, date_end, site, env):
             #Delete the existing data
             snips.execute_query(engine, query_del)
         #Upload the new data
-        snips.upload_to_sql(data, engine, env["SQL_TABLE"], env["SQL_SCHEMA"], replace=False, chunks=150)
-    except:
+        snips.upload_to_sql(data, engine, env["SQL_TABLE"], env["SQL_SCHEMA"], replace=False, chunks=chunks)
+    except pyodbc.OperationalError:
         print("Disconnected from the sandpit. Waiting before trying again...")
         #If the connection drops, wait and try again
         add_delay(env["WAIT_COOLOFF"])
@@ -60,8 +67,10 @@ def upload_request_data(data, query_del, date_start, date_end, site, env):
                 #Delete the existing data
                 snips.execute_query(engine, query_del)
             #Upload the new data
-            snips.upload_to_sql(data, engine, env["SQL_TABLE"], env["SQL_SCHEMA"], replace=False, chunks=150)
-        except:
+            snips.upload_to_sql(data, engine, env["SQL_TABLE"], env["SQL_SCHEMA"], replace=False, chunks=chunks)
+        except pyodbc.OperationalError as e:
             raise Exception("Connectioned dropped again so cancelling execution")
-
-    print(f"Upload successful for site {site} from {date_start} to {date_end}")
+        except pyodbc.ProgrammingError as e:
+            raise Exception (e)
+    except pyodbc.ProgrammingError as e:
+            raise Exception (e)

@@ -8,6 +8,7 @@
 # Data manipulation
 numpy==1.26.0
 pandas==2.2.2
+pyxlsb==1.0.10
 
 # SQL connections
 pyodbc==5.1.0

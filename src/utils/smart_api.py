@@ -14,25 +14,6 @@ import csv
 #pip install ncl-sqlsnippets
 #import ncl_sqlsnippets as snips
 
-#Process settings
-def import_settings(config):
-    return {
-        "API_URL": config["smart_api"]["base"]["api_url"],
-        "API_KEY": getenv("SMART_API_KEY"),
-        "SITES": config["smart_api"]["base"]["sites"],
-        
-        "DATE_END": config["smart_api"]["date"]["end"],
-        "DATE_WINDOW": config["smart_api"]["date"]["window"],
-        
-        "WAIT_PERIOD": config["smart_api"]["wait"]["period"],
-        "WAIT_COOLOFF": config["smart_api"]["wait"]["cooloff"],
-
-        "SQL_ADDRESS": getenv("SQL_ADDRESS"),
-        "SQL_DATABASE": config["database"]["sql_database"],
-        "SQL_SCHEMA": config["database"]["sql_schema"],
-        "SQL_TABLE": config["smart_api"]["base"]["sql_table"],
-    }
-
 #Takes the input DATE_END and returns it as a date type variable
 def process_date_end(input_date_end):
     #Check for keyword to use current date
@@ -149,7 +130,6 @@ def smart_request (url, key, date_start, date_end, hash_id):
 def add_delay(seconds):
     time.sleep(int(seconds))
 
-
 # wrangle the downloaded data
 def processing_data_for_storage(config, api_pull, date_start, date_end):
     IndicatorList = config["smart_api"]["base"]['indicator_list']
@@ -176,14 +156,8 @@ def processing_data_for_storage(config, api_pull, date_start, date_end):
     site_id_map = pd.read_csv("./lookups/org_lookup_smart.csv")
     site_id_map = site_id_map[site_id_map["dataset"] == "smart_api"]
 
-    data = data.merge(site_id_map, how="left", left_on="dataset_reference", right_on="site_code_smart")
+    data = data.merge(site_id_map, how="left", left_on="siteId", right_on="dataset_reference")
 
-    data = data[['source', 'indicatorKeyName', 'site_code_ref', 'reportDate', 'metric_type', 'value']]
+    data = data[['source', 'indicatorKeyName', 'provider_code', 'reportDate', 'metric_type', 'value']]
 
     return data
-
-
-
-
-
-
