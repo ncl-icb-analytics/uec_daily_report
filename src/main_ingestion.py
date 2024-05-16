@@ -10,12 +10,12 @@ import pandas as pd
 import numpy as np
 from sqlalchemy import types
 
-from utils.smart_api import *
-from utils.live_tracker_extract import *
-from utils.sandpit_management import *
-from utils.global_params import *
-from utils.visualisation_functions import *
-from utils.network_management import *
+from src.utils.smart_api import *
+from src.utils.live_tracker_extract import *
+from src.utils.sandpit_management import *
+from src.utils.global_params import *
+from src.utils.visualisation_functions import *
+from src.utils.network_management import *
 
 ### Load environment variables 
 config = toml.load("./config.toml")
