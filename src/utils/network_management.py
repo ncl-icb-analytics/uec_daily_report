@@ -1,4 +1,4 @@
-from os import listdir, path
+from os import listdir, path, rename
 
 #Check the provided directory for a specified excel file and return the name
 def fetch_excel_file (dir, ext=""):
@@ -16,7 +16,7 @@ def fetch_excel_file (dir, ext=""):
     if len(latest_file) != 1:
         #If there are no xlsb files found
         if len(latest_file) == 0:
-            raise Exception(f"Error, no matching excel file {ext} found in the directory.")
+            raise Exception(f"No matching excel file {ext} found in the directory.")
         #If there are multiple xlsb files found
         if len(latest_file) > 1:
             raise Exception(f"Error, multiple matching excel files {ext} found in the directory or the target file is open and locked.")
@@ -24,3 +24,9 @@ def fetch_excel_file (dir, ext=""):
 
     #Return the file name from the latest_file variable
     return path.join(dir,latest_file[0])
+
+#Archive the data file
+def archive_data_file(data_file, dir, ds, date_label):
+    #Rename the current file to archive it
+    new_filename = f"{dir}/archive/{ds} {date_label}.xlsx"
+    rename(data_file, new_filename)
