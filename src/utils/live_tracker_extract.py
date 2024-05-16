@@ -18,8 +18,8 @@ def print_status(status, message):
         print(message)
 
     elif status == 401:
-        print(f"An error occured when trying to upload the new data in ", 
-              f"{message}. Please check the new data does not overlap ", 
+        print(f"An error occured when trying to upload the new data in", 
+              f"{message}. Please check the new data does not overlap", 
               "existing data in the table.\n")
 
     elif status == 402:
@@ -109,11 +109,21 @@ def get_date_data(df):
 
     return date_str_arr.max()
 
+def create_tracker_table(engine, ds):
+    create_table_file = f"./docs/sql/live_tracker/create_table_trackers_{ds}.sql"
+
+    f = open(create_table_file, 'r')
+    sql_query = f.read()
+    f.close()
+
+    snips.execute_query(engine, sql_query)
+
 #ef function for the Pathway MOs
 def ef_mo(env, ndf):
     
     archive = env["ARCHIVE_FILE"]
     date_extract = env["date_extract"]
+    ds = "mo"
 
     #Process date_extract
     if env["MO_DATE_OVERWRITE"] != "":
@@ -132,18 +142,25 @@ def ef_mo(env, ndf):
     table_end_index = [x for x in df_src.index[df_src.iloc[:, 0] == "Total"] if x > table_start_index][0]
 
     df_provider_table = df_src.iloc[table_start_index + 1:table_end_index, :6]
-    df_provider_table.columns = ["site", "p1", "p2", "p3", "total", "date_update"]
+    df_provider_table.columns = ["provider", "p1", "p2", "p3", "total", "date_update"]
 
     df_provider_table = df_provider_table.reset_index(drop=True)
 
     date_data = get_date_data(df_provider_table)
 
     #Format the dataframe for uploading
-    df_output = pd.melt(df_provider_table.iloc[:, :4], id_vars=["site"], var_name="metric_name", value_name="metric_value")
+    df_output = pd.melt(df_provider_table.iloc[:, :4], id_vars=["provider"], var_name="metric_name", value_name="metric_value")
     df_output["date_extract"] = date_extract
     df_output["date_data"] = date_data
 
     engine = snips.connect(env["SQL_ADDRESS"], env["SQL_DATABASE"])
+
+    if not snips.table_exists(engine, env['MO_SQL_TABLE'], env['SQL_SCHEMA']):
+        try:
+            create_tracker_table(engine, ds)
+        except Exception as e:
+            print(e)
+            return 402, f"Unable to create table for {ds}. Try running the create table sql in docs/sql/live_tracker for this dataset."
 
     try:
         snips.upload_to_sql(df_output, engine, env["MO_SQL_TABLE"], env["SQL_SCHEMA"], replace=False, chunks=300)
@@ -152,17 +169,18 @@ def ef_mo(env, ndf):
 
     if archive:
         try:
-            archive_data_file("mo", getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA") + ndf, date_data)
+            archive_data_file(ds, getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA") + ndf, date_data)
         except:
             return 402, f"Data uploaded but archive for file {ndf} failed."
 
-    return 200, f"{"mo"} {date_extract}.xlsx."
+    return 200, f"{ds} {date_extract}.xlsx."
 
 #ef function for the P2 Occupancy
 def ef_p2(env, ndf):
 
     archive = env["ARCHIVE_FILE"]
     date_extract = env["date_extract"]
+    ds = "p2"
 
 
     #Process date_extract
@@ -205,6 +223,13 @@ def ef_p2(env, ndf):
 
     engine = snips.connect(env["SQL_ADDRESS"], env["SQL_DATABASE"])
 
+    if not snips.table_exists(engine, env['P2_SQL_TABLE'], env['SQL_SCHEMA']):
+        try:
+            create_tracker_table(engine, ds)
+        except Exception as e:
+            print(e)
+            return 402, f"Unable to create table for {ds}. Try running the create table sql in docs/sql/live_tracker for this dataset."
+
     try:
         snips.upload_to_sql(df_output, engine, env["P2_SQL_TABLE"], env["SQL_SCHEMA"], replace=False, chunks=300)
     except:
@@ -212,16 +237,17 @@ def ef_p2(env, ndf):
 
     if archive:
         try:
-            archive_data_file("p2", getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA") + ndf, date_data)
+            archive_data_file(ds, getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA") + ndf, date_data)
         except:
             return 402, f"Data uploaded but archive for file {ndf} failed."
 
-    return 200, f"{"mo"} {date_extract}.xlsx."
+    return 200, f"{ds} {date_extract}.xlsx."
 
 #ef function for the Virtual Wards
 def ef_vw(env, ndf):
     archive = env["ARCHIVE_FILE"]
     date_extract = env["date_extract"]
+    ds = "vw"
 
     #Load the file
     df_output = pd.read_excel(getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA") + ndf, sheet_name= env["VW_SHEET_NAME"])
@@ -231,27 +257,33 @@ def ef_vw(env, ndf):
     engine = snips.connect(env["SQL_ADDRESS"], env["SQL_DATABASE"])
 
     try:
-        snips.execute_query(engine, f"TRUNCATE TABLE {env['SQL_DATABASE']}.{env['SQL_SCHEMA']}.{env['VW_SQL_TABLE']};")
+        if snips.table_exists(engine, env['VW_SQL_TABLE'], env['SQL_SCHEMA']):
+            snips.execute_query(engine, f"TRUNCATE TABLE {env['SQL_DATABASE']}.{env['SQL_SCHEMA']}.{env['VW_SQL_TABLE']};")
+        else:
+            try:
+                create_tracker_table(engine, ds)
+            except Exception as e:
+                print(e)
+                return 402, f"Unable to create table for {ds}. Try running the create table sql in docs/sql/live_tracker for this dataset."
+            
         snips.upload_to_sql(df_output, engine, env["VW_SQL_TABLE"], env["SQL_SCHEMA"], replace=False, chunks=300)
     except:
         return 401, ndf
 
     if archive:
         try:
-            archive_data_file("vw", getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA") + ndf, date_extract)
+            archive_data_file(ds, getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA") + ndf, date_extract)
         except:
             return 402, f"Data uploaded but archive for file {ndf} failed."
 
-    return 200, f"{"mo"} {date_extract}.xlsx."
+    return 200, f"{ds} {date_extract}.xlsx."
 
 #Control function to decide which ef function to use
 def ef_controller (dataset, params, new_data_files):
 
     if dataset == 'vw' and len(new_data_files) > 1:
         return 501, f"Virtual Ward extraction only supports single file additions. Please ensure there is only 1 Virtual Ward tracker file in the new_data directory."
-
     for ndf in new_data_files:
-
         try:
             #Run the relevant extract function
             if dataset == "mo":
@@ -267,4 +299,4 @@ def ef_controller (dataset, params, new_data_files):
             print_status(status, message)
 
         except Exception as e:
-            return 400, e
+            print(400, e)
