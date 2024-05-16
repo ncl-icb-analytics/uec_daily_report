@@ -3,7 +3,7 @@ import pathlib
 import os 
 from os import getenv
 import ncl_sqlsnippets as snips
-from datetime import datetime, timedelta
+from datetime import datetime as dtt, timedelta
 from dotenv import load_dotenv
 import re
 import pandas as pd
@@ -131,7 +131,7 @@ if True:
     las_data = las_data[['period', 'hospital_site','indicatorKeyName','value']].reset_index(drop=True) 
     ## Period of interest only
     las_data['period'] = pd.to_datetime(las_data['period'], unit='D', origin='1899-12-30')#, errors='coerce')
-    las_data['cutoff'] = pd.Timestamp(datetime.datetime.now()).date()-pd.to_timedelta(14, unit='d')
+    las_data['cutoff'] = pd.Timestamp(dtt.now()).date()-pd.to_timedelta(14, unit='d')
     las_data = las_data.query("period >= cutoff")
     ## Add site reference codes
     las_id_map = site_id_map[site_id_map["dataset"] == "las"]
@@ -200,7 +200,7 @@ if True:
     # Filter data to relevant sites, indicators and time period
     ## Date
     new_sitrep_data["period"] = pd.to_datetime(new_sitrep_data["period"], origin="1899-12-30", unit="D")
-    new_sitrep_data['cutoff'] = pd.Timestamp(datetime.datetime.now()).date()-pd.to_timedelta(DATE_RANGE, unit='d')
+    new_sitrep_data['cutoff'] = pd.Timestamp(dtt.now()).date()-pd.to_timedelta(DATE_RANGE, unit='d')
     new_sitrep_data = new_sitrep_data.query("period >= cutoff")
     ## Site
     new_sitrep_data = new_sitrep_data.query('orgcode in @ORG_LIST')
@@ -234,4 +234,29 @@ if True:
     # upload to sandpit - once suficiently generalised
     query_del = get_delete_query(date_start, date_end, ["RAL01" "RAL26", "RALC7", "RAP", "RKE", "RRV"], env)
     upload_request_data(new_sitrep_data, query_del, env)
-    print(f"Upload successful for ecist")  
+    print(f"Upload successful for ecist")
+
+'''
+Live Tracker
+'''
+if True:
+
+    #Load base settings
+    env = import_settings(config, "live_tracker")
+    
+    #Import the functions for processing the files
+
+    datasets = ["mo", "p2", "vw"]
+    new_data_files = scan_new_files(datasets, env)
+
+    #Run the extract function for each dataset
+    for ds in datasets:
+        print(f"Processing new {ds} data...")
+
+        if new_data_files[ds] == []:
+            status = 404
+            message = None
+        else:
+            status, message = ef_controller(ds, env, new_data_files[ds])
+
+        print_status(status, message)
