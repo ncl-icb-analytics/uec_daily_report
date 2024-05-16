@@ -26,7 +26,7 @@ def fetch_excel_file (dir, ext=""):
     return path.join(dir,latest_file[0])
 
 #Archive the data file
-def archive_data_file(data_file, dir, ds, date_label):
+def archive_data_file(data_file, dir, ds, date_label, ext=".xlsx"):
     #Rename the current file to archive it
-    new_filename = f"{dir}/archive/{ds} {date_label}.xlsx"
+    new_filename = f"{dir}/archive/{ds} {date_label}{ext}"
     rename(data_file, new_filename)
