@@ -1,8 +1,7 @@
 import pandas as pd
 import ncl_sqlsnippets as snips
 import re
-import datetime as dt
-from datetime import date, datetime as dtt, timedelta
+from datetime import date, datetime as dtt
 import os
 
 #pip install python-dotenv
@@ -13,22 +12,24 @@ from os import getenv, rename
 def print_status(status, message):
 
     if status == 200:
-        print("New data processed.\n")
+        print(f"New data processed for {message}")
 
     elif status == 400:
-        print(message, "\n")
+        print(message)
 
     elif status == 401:
-        print("An error occured when trying to upload the new data. Please check the new data does not overlap existing data in the table.\n")
+        print(f"An error occured when trying to upload the new data in ", 
+              f"{message}. Please check the new data does not overlap ", 
+              "existing data in the table.\n")
 
     elif status == 402:
-        print(status, " ", message, "\n")
+        print(status, " ", message)
 
     elif status == 404:
-        print("No new data files found.\n")
+        print("No new data files found.")
 
     else:
-        print(status, message, "\n")
+        print(status, message)
 
 #Scans the new data folder for new data
 def scan_new_files(datasets, env):
@@ -147,7 +148,7 @@ def ef_mo(env, ndf):
     try:
         snips.upload_to_sql(df_output, engine, env["MO_SQL_TABLE"], env["SQL_SCHEMA"], replace=False, chunks=300)
     except:
-        return 401, None
+        return 401, ndf
 
     if archive:
         try:
@@ -155,7 +156,7 @@ def ef_mo(env, ndf):
         except:
             return 402, f"Data uploaded but archive for file {ndf} failed."
 
-    return 200, None
+    return 200, f"{"mo"} {date_extract}.xlsx."
 
 #ef function for the P2 Occupancy
 def ef_p2(env, ndf):
@@ -207,7 +208,7 @@ def ef_p2(env, ndf):
     try:
         snips.upload_to_sql(df_output, engine, env["P2_SQL_TABLE"], env["SQL_SCHEMA"], replace=False, chunks=300)
     except:
-        return 401, None
+        return 401, ndf
 
     if archive:
         try:
@@ -215,7 +216,7 @@ def ef_p2(env, ndf):
         except:
             return 402, f"Data uploaded but archive for file {ndf} failed."
 
-    return 200, None
+    return 200, f"{"mo"} {date_extract}.xlsx."
 
 #ef function for the Virtual Wards
 def ef_vw(env, ndf):
@@ -233,7 +234,7 @@ def ef_vw(env, ndf):
         snips.execute_query(engine, f"TRUNCATE TABLE {env['SQL_DATABASE']}.{env['SQL_SCHEMA']}.{env['VW_SQL_TABLE']};")
         snips.upload_to_sql(df_output, engine, env["VW_SQL_TABLE"], env["SQL_SCHEMA"], replace=False, chunks=300)
     except:
-        return 401, None
+        return 401, ndf
 
     if archive:
         try:
@@ -241,7 +242,7 @@ def ef_vw(env, ndf):
         except:
             return 402, f"Data uploaded but archive for file {ndf} failed."
 
-    return 200, None
+    return 200, f"{"mo"} {date_extract}.xlsx."
 
 #Control function to decide which ef function to use
 def ef_controller (dataset, params, new_data_files):
@@ -260,12 +261,10 @@ def ef_controller (dataset, params, new_data_files):
             elif dataset == "vw":
                 status, message = ef_vw(params, ndf)
             else:
-                return 500, f"Dataset {dataset} is not supported."
+                print_status(500, f"Dataset {dataset} is not supported.")
 
             #If an issue occurs then report the issue
-            if status != 200:
-                return status, message
+            print_status(status, message)
+
         except Exception as e:
             return 400, e
-        
-    return status, None
