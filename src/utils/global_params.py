@@ -47,27 +47,27 @@ def import_settings(config, ds):
     
     elif ds == "live_tracker":
         params_tracker ={
-                "ARCHIVE_FILE": getenv("ARCHIVE_FILE"),
+                "ARCHIVE_FILE": config["live_tracker"]["archive_file"],
 
-                "mo" : getenv("MO"),
-                "p2" : getenv("P2"),
-                "vw" : getenv("VW"),
+                "mo" : config["live_tracker"]["mo"]["mo"],
+                "p2" : config["live_tracker"]["p2"]["p2"],
+                "vw" : config["live_tracker"]["vw"]["vw"],
 
                 "SQL_ADDRESS": getenv("SQL_ADDRESS"),
-                "SQL_DATABASE": getenv("SQL_DATABASE"),
-                "SQL_SCHEMA": getenv("SQL_SCHEMA"),
+                "SQL_DATABASE": config["database"]["sql_database"],
+                "SQL_SCHEMA": config["database"]["sql_schema"],
 
-                "MO_SHEET_NAME": getenv("MO_SHEET_NAME"),
-                "MO_TABLE_HEADING": getenv("MO_TABLE_HEADING"),
-                "MO_SQL_TABLE": getenv("MO_SQL_TABLE"),
-                "MO_DATE_OVERWRITE": getenv("MO_DATE_OVERWRITE"),
+                "MO_SHEET_NAME": config["live_tracker"]["mo"]["mo_sheet_name"],
+                "MO_TABLE_HEADING": config["live_tracker"]["mo"]["mo_table_heading"],
+                "MO_SQL_TABLE": config["live_tracker"]["mo"]["mo_sql_table"],
+                "MO_DATE_OVERWRITE": config["live_tracker"]["mo"]["mo_date_overwrite"],
 
-                "P2_SHEET_NAME": getenv("P2_SHEET_NAME"),
-                "P2_SQL_TABLE": getenv("P2_SQL_TABLE"),
-                "P2_DATE_OVERWRITE": getenv("P2_DATE_OVERWRITE"),
+                "P2_SHEET_NAME": config["live_tracker"]["p2"]["p2_sheet_name"],
+                "P2_SQL_TABLE": config["live_tracker"]["p2"]["p2_sql_table"],
+                "P2_DATE_OVERWRITE": config["live_tracker"]["p2"]["p2_date_overwrite"],
 
-                "VW_SHEET_NAME": getenv("VW_SHEET_NAME"),
-                "VW_SQL_TABLE": getenv("VW_SQL_TABLE")
+                "VW_SHEET_NAME": config["live_tracker"]["vw"]["vw_sheet_name"],
+                "VW_SQL_TABLE": config["live_tracker"]["vw"]["vw_sql_table"]
             }
         params_tracker["date_extract"] = datetime.date.today().strftime("%Y-%m-%d")
 

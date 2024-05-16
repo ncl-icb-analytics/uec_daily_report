@@ -42,3 +42,24 @@ org_list = ['RAL','RAP','RRV','RKE']
 [ecist_sitrep.date]
 date_range = 35
 
+[live_tracker]
+archive_file = 1
+
+[live_tracker.mo]
+mo = "Daily Delay"
+mo_sheet_name = "NCL TOTAL"
+mo_table_heading = "Total by Hospital"
+mo_sql_table = "uec_tracker_mo_test"
+mo_date_overwrite = ""
+
+[live_tracker.p2]
+p2 = "P2 Capacity"
+p2_sheet_name = "P2 Capacity"
+p2_sql_table = "uec_tracker_p2_test"
+p2_date_overwrite = ""
+
+[live_tracker.vw]
+vw = "Virtual Ward"
+vw_sheet_name = "Historic System Value"
+vw_sql_table = "uec_tracker_vw"
+
