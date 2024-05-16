@@ -32,6 +32,7 @@ def import_settings(config, ds):
                 "SQL_SCHEMA": config["database"]["sql_schema"],
                 "SQL_TABLE": config["las"]["base"]["sql_table"],
                 "WAIT_COOLOFF": config["database"]["sql_cooloff"],
+                "ARCHIVE_LAS": config["las"]["base"]["archive_file"]
             }
         return params_las
     
@@ -42,6 +43,7 @@ def import_settings(config, ds):
                 "SQL_SCHEMA": config["database"]["sql_schema"],
                 "SQL_TABLE": config["ecist_sitrep"]["base"]["sql_table"],
                 "WAIT_COOLOFF": config["database"]["sql_cooloff"],
+                "ARCHIVE_ECIST": config["ecist_sitrep"]["base"]["archive_file"]
             }
         return params_ecist
     
