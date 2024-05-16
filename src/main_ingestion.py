@@ -15,6 +15,7 @@ from utils.live_tracker_extract import *
 from utils.sandpit_management import *
 from utils.global_params import *
 from utils.visualisation_functions import *
+from utils.network_management import *
 
 ### Load environment variables 
 config = toml.load("./config.toml")
@@ -31,7 +32,7 @@ pd.DataFrame([],
 
 ### Set which pipelines to run
 ### In order: smart API, las handover, ecist sitrep, live tracker datasets
-debug_run = [True, True, True, True]
+debug_run = [1,1,1,1]
 
 '''
 Pull from smart API
@@ -118,7 +119,7 @@ if debug_run[1]:
     env = import_settings(config, "las")
 
     # Load the sheet into a dataframe
-    las_file_path = getenv("NETWORKED_DATA_PATH_LAS")
+    las_file_path = fetch_excel_file(getenv("NETWORKED_DATA_PATH_LAS"), ext=".xlsb")
     las_data = pd.read_excel(las_file_path, sheet_name= "Data_Ambulance_Handovers")
 
     las_data.rename(columns=clean_column_name, inplace=True)
@@ -144,7 +145,7 @@ if debug_run[1]:
     ## add to inter for graphing
     las_data['source'] = 'las'
     las_data['metric_type'] = 'actual'
-    las_data.rename(columns={'period': 'reportDate'}, inplace=True)
+    las_data.rename(columns={'period': 'date_data'}, inplace=True)
     las_data = las_data[['source', 'indicatorKeyName', 'provider_code', 'reportDate', 'metric_type', 'value']]
     las_data.to_csv('inter.csv', mode='a', index=False, header=False)
 
@@ -153,7 +154,7 @@ if debug_run[1]:
     las_data = las_data.pivot(index=['reportDate', 'provider_code'], columns='indicatorKeyName', values='value').reset_index()
     las_data = las_data.rename_axis(None, axis = 1)
 
-    date_end = las_data.max().loc[0].date()
+    date_end = las_data.max().iloc[0].date()
     date_start = (date_end - timedelta(days=14))
 
     # upload to sandpit - once suficiently generalised
@@ -179,21 +180,8 @@ if debug_run[2]:
     sitrep_file_path = getenv("NETWORKED_DATA_PATH_ECIST")
 
     # Get the latest file
-    latest_file = [file for file in os.listdir(sitrep_file_path) if file.endswith(".xlsb")] #This checks every file in the current directory using the listdir function and then returns only files that end in ".xlsb" which are excel binary files
+    filename = fetch_excel_file(sitrep_file_path, ext=".xlsb")
 
-    #Error checking to make sure the new data file is in the directory as expected.
-    #If the new data file can't be unidentified then raise an error so the person running this code can fix it
-    if len(latest_file) != 1:
-        #If there are no xlsb files found
-        if len(latest_file) == 0:
-            raise Exception(f"Error, no excel binary file (xlsb) found in the directory.")
-        #If there are multiple xlsb files found
-        if len(latest_file) > 1:
-            raise Exception(f"Error, multiple excel binary file (xlsb) found in the directory or the UEC Dashboard file is open.")
-
-
-    #Get the file name from the latest_file variable
-    filename = os.path.join(sitrep_file_path,latest_file[0])
     #The name of the sheet with the data on it
     sheet_name = "New Raw Data"
 
@@ -216,7 +204,7 @@ if debug_run[2]:
     new_sitrep_data = new_sitrep_data[['period', 'orgcode','indicatorKeyName','value']].reset_index(drop=True) 
 
     # Inter porcessing
-    new_sitrep_data.rename(columns={'period': 'reportDate', 'orgcode': 'provider_code'},  inplace=True)
+    new_sitrep_data.rename(columns={'period': 'date_data', 'orgcode': 'provider_code'},  inplace=True)
     new_sitrep_data = new_sitrep_data[['indicatorKeyName', 'provider_code', 'reportDate', 'value']]
     new_sitrep_data = new_sitrep_data.groupby(['reportDate', 'provider_code', 'indicatorKeyName'])['value'].sum().reset_index()
     new_sitrep_data = new_sitrep_data.drop_duplicates()
