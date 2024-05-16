@@ -29,10 +29,14 @@ pd.DataFrame([],
                       'ReportDate', 'metric_type', 'value']
              ).to_csv('inter.csv', mode='w', index=False, header=True)
 
+### Set which pipelines to run
+### In order: smart API, las handover, ecist sitrep, live tracker datasets
+debug_run = [True, True, True, True]
+
 '''
 Pull from smart API
 '''
-if True:
+if debug_run[0]:
     print("API program starting...")
 
     ### Import settings from the .env file
@@ -108,7 +112,7 @@ if True:
 '''
 LAS import
 '''
-if True:
+if debug_run[1]:
 
     ### Import settings from the .env file
     env = import_settings(config, "las")
@@ -160,7 +164,7 @@ if True:
 '''
 ECIST SITREP
 '''
-if True:
+if debug_run[2]:
 
     ### Import settings from the .env file
     env = import_settings(config, "ecist")
@@ -239,7 +243,7 @@ if True:
 '''
 Live Tracker
 '''
-if True:
+if debug_run[3]:
 
     #Load base settings
     env = import_settings(config, "live_tracker")
@@ -251,12 +255,11 @@ if True:
 
     #Run the extract function for each dataset
     for ds in datasets:
-        print(f"Processing new {ds} data...")
+        print(f"\nProcessing new {ds} data...")
 
         if new_data_files[ds] == []:
-            status = 404
-            message = None
+            print_status(404, None)
         else:
-            status, message = ef_controller(ds, env, new_data_files[ds])
+            ef_controller(ds, env, new_data_files[ds])
 
-        print_status(status, message)
+        
