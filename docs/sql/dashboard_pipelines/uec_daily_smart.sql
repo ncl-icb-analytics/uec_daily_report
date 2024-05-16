@@ -16,7 +16,7 @@ FROM (
 		Value_numeric as [metric_value]
 	FROM [Data_Lab_NCL_Dev].[JakeK].[uec_daily_smart_vw]
 
-	WHERE [reportDate] >= GETDATE()-60
+	WHERE [reportDate] >= GETDATE()-40
 	AND IndicatorKeyName IN ('breaches','no_of_attendances','dta_in_ed_at_time_of_reporting','medically_optimised')
 
 	--Filter out CFH DTA and MO data as they are not reported in the dashboard
