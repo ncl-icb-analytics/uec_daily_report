@@ -76,10 +76,10 @@ def import_settings_ef():
     }
 
 #Archive the data file
-def archive_data_file(ds, file, date_extract):
+def archive_data_file_lt(data_file, dir, ds, date_label):
     #Rename the current file to archive it
-    new_filename = f"{getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_ARCHIVE")}{ds}/{ds} {date_extract}.xlsx"
-    rename(file, new_filename)
+    new_filename = f"{dir}/archive/{ds} {date_label}.xlsx"
+    rename(data_file, new_filename)
 
 #Get date_data from a dirty date column
 def get_date_data(df):
@@ -123,6 +123,7 @@ def ef_mo(env, ndf):
     
     archive = env["ARCHIVE_FILE"]
     date_extract = env["date_extract"]
+    data_dir = getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA")
     ds = "mo"
 
     #Process date_extract
@@ -133,7 +134,7 @@ def ef_mo(env, ndf):
             return 400, f"The Daily Delay MO_DATE_OVERWRITE value ({env['MO_DATE_OVERWRITE']}) is not a valid YYYY-MM-DD value." 
     
     #Load the file
-    df_src = pd.read_excel(getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA") + ndf, 
+    df_src = pd.read_excel(data_dir + ndf, 
                            sheet_name= env["MO_SHEET_NAME"])
 
 
@@ -169,7 +170,7 @@ def ef_mo(env, ndf):
 
     if archive:
         try:
-            archive_data_file(ds, getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA") + ndf, date_data)
+            archive_data_file_lt(data_dir + ndf, data_dir, ds, date_data)
         except:
             return 402, f"Data uploaded but archive for file {ndf} failed."
 
@@ -180,6 +181,7 @@ def ef_p2(env, ndf):
 
     archive = env["ARCHIVE_FILE"]
     date_extract = env["date_extract"]
+    data_dir = getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA")
     ds = "p2"
 
 
@@ -237,7 +239,7 @@ def ef_p2(env, ndf):
 
     if archive:
         try:
-            archive_data_file(ds, getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA") + ndf, date_data)
+            archive_data_file_lt(data_dir + ndf, data_dir, ds, date_data)
         except:
             return 402, f"Data uploaded but archive for file {ndf} failed."
 
@@ -247,6 +249,7 @@ def ef_p2(env, ndf):
 def ef_vw(env, ndf):
     archive = env["ARCHIVE_FILE"]
     date_extract = env["date_extract"]
+    data_dir = getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA")
     ds = "vw"
 
     #Load the file
@@ -272,7 +275,7 @@ def ef_vw(env, ndf):
 
     if archive:
         try:
-            archive_data_file(ds, getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA") + ndf, date_extract)
+            archive_data_file_lt(data_dir + ndf, data_dir, ds, date_extract)
         except:
             return 402, f"Data uploaded but archive for file {ndf} failed."
 
