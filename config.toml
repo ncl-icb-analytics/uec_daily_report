@@ -61,5 +61,5 @@ p2_date_overwrite = ""
 [live_tracker.vw]
 vw = "Virtual Ward"
 vw_sheet_name = "Historic System Value"
-vw_sql_table = "uec_tracker_vw"
+vw_sql_table = "uec_tracker_vw_test"
 
