@@ -156,6 +156,14 @@ def ef_mo(env, ndf):
 
     engine = snips.connect(env["SQL_ADDRESS"], env["SQL_DATABASE"])
 
+    #Use org lookup file to get provider codes
+    site_id_map = pd.read_csv("./lookups/org_lookup.csv")
+    mo_id_map = site_id_map[site_id_map["dataset"] == "mo"]
+    df_output = df_output.merge(mo_id_map, how="left", 
+                                       left_on="provider", 
+                                       right_on="dataset_reference")
+    df_output = df_output.drop(["dataset", "dataset_reference", "provider"], axis=1)
+
     if not snips.table_exists(engine, env['MO_SQL_TABLE'], env['SQL_SCHEMA']):
         try:
             create_tracker_table(engine, ds)

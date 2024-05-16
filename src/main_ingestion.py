@@ -20,7 +20,7 @@ from utils.network_management import *
 ### Load environment variables 
 config = toml.load("./config.toml")
 load_dotenv(override=True)
-site_id_map = pd.read_csv("./lookups/org_lookup_smart.csv")
+site_id_map = pd.read_csv("./lookups/org_lookup.csv")
 
 
 ### Generate file for intermediate wrangle:
@@ -101,7 +101,7 @@ if debug_run[0]:
             #Upload and manage datasets
             query_del = get_delete_query(date_start, date_end, [site], env)
             # this needs to be generic enough for all 4 pipelines
-            res_for_upload = res.merge(site_id_map, how="left", 
+            res_for_upload = res.merge(smart_id_map, how="left", 
                                        left_on="siteId", 
                                        right_on="dataset_reference")
             res_for_upload.drop(["dataset", "dataset_reference"], axis=1)
@@ -150,7 +150,7 @@ if debug_run[1]:
         las_data = las_data.query("period >= cutoff")
         ## Add site reference codes
         las_id_map = site_id_map[site_id_map["dataset"] == "las"]
-        las_data = las_data.merge(site_id_map, how="left", left_on="hospital_site", right_on="dataset_reference")
+        las_data = las_data.merge(las_id_map, how="left", left_on="hospital_site", right_on="dataset_reference")
 
         ## add to inter for graphing
         las_data['source'] = 'las'
