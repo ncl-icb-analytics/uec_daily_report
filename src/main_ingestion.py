@@ -32,13 +32,16 @@ pd.DataFrame([],
 
 ### Set which pipelines to run
 ### In order: smart API, las handover, ecist sitrep, live tracker datasets
-debug_run = [1,1,1,1]
+debug_run = [0,1,1,1]
+
+#Line break in terminal
+print()
 
 '''
 Pull from smart API
 '''
 if debug_run[0]:
-    print("API program starting...")
+    print("#########   Processing SMART API Pipeline   #########")
 
     ### Import settings from the .env file
     env = import_settings(config, "smart_api")
@@ -106,66 +109,79 @@ if debug_run[0]:
             upload_request_data(res_for_upload, query_del, env)
 
             print(f"Upload successful for {site} for ", 
-                  f"{date_start} to {date_end}")  
+                  f"{date_start} to {date_end}")
 
-    print("All SMART API pulls complete")
+            print("\n")  
 
 '''
 LAS import
 '''
 if debug_run[1]:
 
+    print("#########   Processing LAS Handover Pipeline   #########")
+
     ### Import settings from the .env file
     env = import_settings(config, "las")
+    las_data_dir = getenv("NETWORKED_DATA_PATH_LAS")
 
     # Load the sheet into a dataframe
-    las_file_path = fetch_excel_file(getenv("NETWORKED_DATA_PATH_LAS"), ext=".xlsb")
-    las_data = pd.read_excel(las_file_path, sheet_name= "Data_Ambulance_Handovers")
+    try:
+        las_file_path = fetch_excel_file(las_data_dir, ext=".xlsb")
+    except Exception as e:
+        print(e)
+    else:
+        las_data = pd.read_excel(las_file_path, sheet_name= "Data_Ambulance_Handovers")
 
-    las_data.rename(columns=clean_column_name, inplace=True)
-    las_data.columns = map(str.lower, las_data.columns)
+        las_data.rename(columns=clean_column_name, inplace=True)
+        las_data.columns = map(str.lower, las_data.columns)
 
-    # filter to keep only relevent data
-    ## NCL only
-    las_data = las_data.query('stp_code == "QMJ"').reset_index(drop = True) # NCL STP only
-    las_data = las_data.drop(['stp_code', 'stp_short', 'weekday', 'id'], axis=1) # columns not needed 
-    ## Metrics of interest only
-    las_data = las_data.melt(id_vars = ['hospital_site', 'period'], var_name='indicatorKeyName', value_name='value') # lengthen data to allow filter
-    IndicatorList = config["las"]["base"]['indicator_list'] # import metric list
-    las_data = las_data.query('indicatorKeyName in @IndicatorList') # filter metrics list
-    las_data = las_data[['period', 'hospital_site','indicatorKeyName','value']].reset_index(drop=True) 
-    ## Period of interest only
-    las_data['period'] = pd.to_datetime(las_data['period'], unit='D', origin='1899-12-30')#, errors='coerce')
-    las_data['cutoff'] = pd.Timestamp(dtt.now()).date()-pd.to_timedelta(14, unit='d')
-    las_data = las_data.query("period >= cutoff")
-    ## Add site reference codes
-    las_id_map = site_id_map[site_id_map["dataset"] == "las"]
-    las_data = las_data.merge(site_id_map, how="left", left_on="hospital_site", right_on="dataset_reference")
+        # filter to keep only relevent data
+        ## NCL only
+        las_data = las_data.query('stp_code == "QMJ"').reset_index(drop = True) # NCL STP only
+        las_data = las_data.drop(['stp_code', 'stp_short', 'weekday', 'id'], axis=1) # columns not needed 
+        ## Metrics of interest only
+        las_data = las_data.melt(id_vars = ['hospital_site', 'period'], var_name='indicatorKeyName', value_name='value') # lengthen data to allow filter
+        IndicatorList = config["las"]["base"]['indicator_list'] # import metric list
+        las_data = las_data.query('indicatorKeyName in @IndicatorList') # filter metrics list
+        las_data = las_data[['period', 'hospital_site','indicatorKeyName','value']].reset_index(drop=True) 
+        ## Period of interest only
+        las_data['period'] = pd.to_datetime(las_data['period'], unit='D', origin='1899-12-30')#, errors='coerce')
+        las_data['cutoff'] = pd.Timestamp(dtt.now()).date()-pd.to_timedelta(14, unit='d')
+        las_data = las_data.query("period >= cutoff")
+        ## Add site reference codes
+        las_id_map = site_id_map[site_id_map["dataset"] == "las"]
+        las_data = las_data.merge(site_id_map, how="left", left_on="hospital_site", right_on="dataset_reference")
 
-    ## add to inter for graphing
-    las_data['source'] = 'las'
-    las_data['metric_type'] = 'actual'
-    las_data.rename(columns={'period': 'date_data'}, inplace=True)
-    las_data = las_data[['source', 'indicatorKeyName', 'provider_code', 'reportDate', 'metric_type', 'value']]
-    las_data.to_csv('inter.csv', mode='a', index=False, header=False)
+        ## add to inter for graphing
+        las_data['source'] = 'las'
+        las_data['metric_type'] = 'actual'
+        las_data.rename(columns={'period': 'date_data'}, inplace=True)
+        las_data = las_data[['source', 'indicatorKeyName', 'provider_code', 'date_data', 'metric_type', 'value']]
+        las_data.to_csv('inter.csv', mode='a', index=False, header=False)
 
-    ## Sandpit upload
-    # reshape for sandpit
-    las_data = las_data.pivot(index=['reportDate', 'provider_code'], columns='indicatorKeyName', values='value').reset_index()
-    las_data = las_data.rename_axis(None, axis = 1)
+        ## Sandpit upload
+        # reshape for sandpit
+        las_data = las_data.pivot(index=['date_data', 'provider_code'], columns='indicatorKeyName', values='value').reset_index()
+        las_data = las_data.rename_axis(None, axis = 1)
 
-    date_end = las_data.max().iloc[0].date()
-    date_start = (date_end - timedelta(days=14))
+        date_end = las_data.max().iloc[0].date()
+        date_start = (date_end - timedelta(days=14))
 
-    # upload to sandpit - once suficiently generalised
-    query_del = get_delete_query(date_start, date_end, ["RAL01", "RAL26", "RALC7", "RAP", "RKE", "RRV"], env)
-    upload_request_data(las_data, query_del, env)
-    print(f"Upload successful for las")  
+        # upload to sandpit - once suficiently generalised
+        query_del = get_delete_query(date_start, date_end, ["RAL01", "RAL26", "RALC7", "RAP", "RKE", "RRV"], env)
+        upload_request_data(las_data, query_del, env)
+        print(f"Upload successful for las")
 
+        if env["ARCHIVE_LAS"]:
+            archive_data_file(las_file_path, las_data_dir, "las_handover", date_end.strftime("%Y-%m-%d"))
+
+    print("\n")
 '''
 ECIST SITREP
 '''
 if debug_run[2]:
+
+    print("#########   Processing ECIST Sitrep Pipeline   #########")
 
     ### Import settings from the .env file
     env = import_settings(config, "ecist")
@@ -180,58 +196,69 @@ if debug_run[2]:
     sitrep_file_path = getenv("NETWORKED_DATA_PATH_ECIST")
 
     # Get the latest file
-    filename = fetch_excel_file(sitrep_file_path, ext=".xlsb")
+    try:
+        filename = fetch_excel_file(sitrep_file_path, ext=".xlsb")
+    except Exception as e:
+        print(e)
 
-    #The name of the sheet with the data on it
-    sheet_name = "New Raw Data"
+    else:
+        #The name of the sheet with the data on it
+        sheet_name = "New Raw Data"
 
-    new_sitrep_data = pd.read_excel(filename, sheet_name=sheet_name)
-    new_sitrep_data.rename(columns=clean_column_name, inplace=True)
-    new_sitrep_data.columns = map(str.lower, new_sitrep_data.columns)
+        new_sitrep_data = pd.read_excel(filename, sheet_name=sheet_name)
+        new_sitrep_data.rename(columns=clean_column_name, inplace=True)
+        new_sitrep_data.columns = map(str.lower, new_sitrep_data.columns)
 
-    # Filter data to relevant sites, indicators and time period
-    ## Date
-    new_sitrep_data["period"] = pd.to_datetime(new_sitrep_data["period"], origin="1899-12-30", unit="D")
-    new_sitrep_data['cutoff'] = pd.Timestamp(dtt.now()).date()-pd.to_timedelta(DATE_RANGE, unit='d')
-    new_sitrep_data = new_sitrep_data.query("period >= cutoff")
-    ## Site
-    new_sitrep_data = new_sitrep_data.query('orgcode in @ORG_LIST')
-    new_sitrep_data["orgcode"] = new_sitrep_data.apply(lambda x: x["site_code"] if x["orgcode"] == "RAL" else x["orgcode"], axis=1)
-    new_sitrep_data = new_sitrep_data.drop(['trust_name', 'site_name', 'site_code', 'stp_name','region_name'], axis=1) # site specific columns not needed 
-    ## Indicator
-    new_sitrep_data = new_sitrep_data.melt(id_vars = ['orgcode', 'period'], var_name='indicatorKeyName', value_name='value') # lengthen data to allow filter
-    new_sitrep_data = new_sitrep_data.query('indicatorKeyName in @INDICATOR_LIST') # filter metrics list
-    new_sitrep_data = new_sitrep_data[['period', 'orgcode','indicatorKeyName','value']].reset_index(drop=True) 
+        # Filter data to relevant sites, indicators and time period
+        ## Date
+        new_sitrep_data["period"] = pd.to_datetime(new_sitrep_data["period"], origin="1899-12-30", unit="D")
+        new_sitrep_data['cutoff'] = pd.Timestamp(dtt.now()).date()-pd.to_timedelta(DATE_RANGE, unit='d')
+        new_sitrep_data = new_sitrep_data.query("period >= cutoff")
+        ## Site
+        new_sitrep_data = new_sitrep_data.query('orgcode in @ORG_LIST')
+        new_sitrep_data["orgcode"] = new_sitrep_data.apply(lambda x: x["site_code"] if x["orgcode"] == "RAL" else x["orgcode"], axis=1)
+        new_sitrep_data = new_sitrep_data.drop(['trust_name', 'site_name', 'site_code', 'stp_name','region_name'], axis=1) # site specific columns not needed 
+        ## Indicator
+        new_sitrep_data = new_sitrep_data.melt(id_vars = ['orgcode', 'period'], var_name='indicatorKeyName', value_name='value') # lengthen data to allow filter
+        new_sitrep_data = new_sitrep_data.query('indicatorKeyName in @INDICATOR_LIST') # filter metrics list
+        new_sitrep_data = new_sitrep_data[['period', 'orgcode','indicatorKeyName','value']].reset_index(drop=True) 
 
-    # Inter porcessing
-    new_sitrep_data.rename(columns={'period': 'date_data', 'orgcode': 'provider_code'},  inplace=True)
-    new_sitrep_data = new_sitrep_data[['indicatorKeyName', 'provider_code', 'reportDate', 'value']]
-    new_sitrep_data = new_sitrep_data.groupby(['reportDate', 'provider_code', 'indicatorKeyName'])['value'].sum().reset_index()
-    new_sitrep_data = new_sitrep_data.drop_duplicates()
-    new_sitrep_data['source'] = 'ecist_sitrep'
-    new_sitrep_data['metric_type'] = 'actual'
+        # Inter porcessing
+        new_sitrep_data.rename(columns={'period': 'date_data', 'orgcode': 'provider_code'},  inplace=True)
+        new_sitrep_data = new_sitrep_data[['indicatorKeyName', 'provider_code', 'date_data', 'value']]
+        new_sitrep_data = new_sitrep_data.groupby(['date_data', 'provider_code', 'indicatorKeyName'])['value'].sum().reset_index()
+        new_sitrep_data = new_sitrep_data.drop_duplicates()
+        new_sitrep_data['source'] = 'ecist_sitrep'
+        new_sitrep_data['metric_type'] = 'actual'
 
-    new_sitrep_data = new_sitrep_data[['source', 'indicatorKeyName', 'provider_code', 'reportDate', 'metric_type', 'value']]
-    new_sitrep_data.to_csv('inter.csv', mode='a', index=False, header=False)
+        new_sitrep_data = new_sitrep_data[['source', 'indicatorKeyName', 'provider_code', 'date_data', 'metric_type', 'value']]
+        new_sitrep_data.to_csv('inter.csv', mode='a', index=False, header=False)
 
-    ## Sandpit upload
-    # reshape for sandpit
-    new_sitrep_data = new_sitrep_data.drop(['source', 'metric_type'], axis=1).reset_index(drop=True)
-    new_sitrep_data = new_sitrep_data.pivot(index=['reportDate', 'provider_code'], columns='indicatorKeyName', values='value').reset_index()
-    new_sitrep_data = new_sitrep_data.rename_axis(None, axis = 1)
+        ## Sandpit upload
+        # reshape for sandpit
+        new_sitrep_data = new_sitrep_data.drop(['source', 'metric_type'], axis=1).reset_index(drop=True)
+        new_sitrep_data = new_sitrep_data.pivot(index=['date_data', 'provider_code'], columns='indicatorKeyName', values='value').reset_index()
+        new_sitrep_data = new_sitrep_data.rename_axis(None, axis = 1)
 
-    date_end = new_sitrep_data.max().iloc[0].date()
-    date_start = (date_end - timedelta(days=14))
+        date_end = new_sitrep_data.max().iloc[0].date()
+        date_start = (date_end - timedelta(days=14))
 
-    # upload to sandpit - once suficiently generalised
-    query_del = get_delete_query(date_start, date_end, ["RAL01" "RAL26", "RALC7", "RAP", "RKE", "RRV"], env)
-    upload_request_data(new_sitrep_data, query_del, env)
-    print(f"Upload successful for ecist")
+        # upload to sandpit - once suficiently generalised
+        query_del = get_delete_query(date_start, date_end, ["RAL01" "RAL26", "RALC7", "RAP", "RKE", "RRV"], env)
+        upload_request_data(new_sitrep_data, query_del, env)
+        print(f"Upload successful for ecist")
+
+        if env["ARCHIVE_ECIST"]:
+            archive_data_file(filename, sitrep_file_path, "ecist_sitrep", date_end.strftime("%Y-%m-%d"))
+
+    print("\n")
 
 '''
 Live Tracker
 '''
 if debug_run[3]:
+
+    print("#########   Processing Live Tracker Pipeline   #########")
 
     #Load base settings
     env = import_settings(config, "live_tracker")
@@ -250,4 +277,4 @@ if debug_run[3]:
         else:
             ef_controller(ds, env, new_data_files[ds])
 
-        
+    print("\n")     
