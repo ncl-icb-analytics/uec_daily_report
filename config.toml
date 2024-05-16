@@ -31,6 +31,7 @@ period = 5
 [las.base]
 sql_table = "uec_las_handover_test"
 indicator_list = ['hospital_site','total_handover','over_45mins','over_120mins']
+archive_file = 1
 
 [ecist_sitrep]
 
@@ -38,6 +39,7 @@ indicator_list = ['hospital_site','total_handover','over_45mins','over_120mins']
 sql_table = "uec_sitrep_ecist_test"
 indicator_list = ['ae_attendances','over12hoursfromarrival','extended_patients_occupied','g&acorebedsopen', 'number_of_discharges']
 org_list = ['RAL','RAP','RRV','RKE']
+archive_file = 1
 
 [ecist_sitrep.date]
 date_range = 35
