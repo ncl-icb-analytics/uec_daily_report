@@ -33,7 +33,7 @@ def print_status(status, message):
 
 #Scans the new data folder for new data
 def scan_new_files(datasets, env):
-    dir = getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA")
+    dir = getenv("NETWORKED_DATA_PATH_LIVE_TRACKER")
 
     #List of files in the new_data directory
     new_data_files = os.listdir(dir)
@@ -123,7 +123,7 @@ def ef_mo(env, ndf):
     
     archive = env["ARCHIVE_FILE"]
     date_extract = env["date_extract"]
-    data_dir = getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA")
+    data_dir = getenv("NETWORKED_DATA_PATH_LIVE_TRACKER")
     ds = "mo"
 
     #Process date_extract
@@ -174,14 +174,14 @@ def ef_mo(env, ndf):
         except:
             return 402, f"Data uploaded but archive for file {ndf} failed."
 
-    return 200, f"{ds} {date_extract}.xlsx."
+    return 200, f"{ds} {date_data}.xlsx."
 
 #ef function for the P2 Occupancy
 def ef_p2(env, ndf):
 
     archive = env["ARCHIVE_FILE"]
     date_extract = env["date_extract"]
-    data_dir = getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA")
+    data_dir = getenv("NETWORKED_DATA_PATH_LIVE_TRACKER")
     ds = "p2"
 
 
@@ -194,7 +194,7 @@ def ef_p2(env, ndf):
             print(f"The Daily Delay P2_DATE_OVERWRITE value ({env['P2_DATE_OVERWRITE']}) is not a valid YYYY-MM-DD value.")
 
     #Load the file
-    df_src = pd.read_excel(getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA") + ndf, sheet_name= env["P2_SHEET_NAME"])
+    df_src = pd.read_excel(getenv("NETWORKED_DATA_PATH_LIVE_TRACKER") + ndf, sheet_name= env["P2_SHEET_NAME"])
 
     df_trimmed = df_src.copy().iloc[1:, 1:]
     df_trimmed.columns = df_src.iloc[0, 1:]
@@ -243,17 +243,17 @@ def ef_p2(env, ndf):
         except:
             return 402, f"Data uploaded but archive for file {ndf} failed."
 
-    return 200, f"{ds} {date_extract}.xlsx."
+    return 200, f"{ds} {date_data}.xlsx."
 
 #ef function for the Virtual Wards
 def ef_vw(env, ndf):
     archive = env["ARCHIVE_FILE"]
     date_extract = env["date_extract"]
-    data_dir = getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA")
+    data_dir = getenv("NETWORKED_DATA_PATH_LIVE_TRACKER")
     ds = "vw"
 
     #Load the file
-    df_output = pd.read_excel(getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA") + ndf, sheet_name= env["VW_SHEET_NAME"])
+    df_output = pd.read_excel(getenv("NETWORKED_DATA_PATH_LIVE_TRACKER") + ndf, sheet_name= env["VW_SHEET_NAME"])
 
     df_output.columns = ["date_data", "capacity", "occupied", "system_value", "includes_paediatric"]
 
@@ -285,21 +285,22 @@ def ef_vw(env, ndf):
 def ef_controller (dataset, params, new_data_files):
 
     if dataset == 'vw' and len(new_data_files) > 1:
-        return 501, f"Virtual Ward extraction only supports single file additions. Please ensure there is only 1 Virtual Ward tracker file in the new_data directory."
-    for ndf in new_data_files:
-        try:
-            #Run the relevant extract function
-            if dataset == "mo":
-                status, message = ef_mo(params, ndf)
-            elif dataset == "p2":
-                status, message = ef_p2(params, ndf)
-            elif dataset == "vw":
-                status, message = ef_vw(params, ndf)
-            else:
-                print_status(500, f"Dataset {dataset} is not supported.")
+        print_status(501, f"Virtual Ward extraction only supports single file additions. Please ensure there is only 1 Virtual Ward tracker file in the new_data directory.")
+    else:
+        for ndf in new_data_files:
+            try:
+                #Run the relevant extract function
+                if dataset == "mo":
+                    status, message = ef_mo(params, ndf)
+                elif dataset == "p2":
+                    status, message = ef_p2(params, ndf)
+                elif dataset == "vw":
+                    status, message = ef_vw(params, ndf)
+                else:
+                    print_status(500, f"Dataset {dataset} is not supported.")
 
-            #If an issue occurs then report the issue
-            print_status(status, message)
+                #If an issue occurs then report the issue
+                print_status(status, message)
 
-        except Exception as e:
-            print(400, e)
+            except Exception as e:
+                print(400, e)

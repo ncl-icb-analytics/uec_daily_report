@@ -8,7 +8,7 @@ sql_cooloff = 60
 [smart_api]
 
 [smart_api.base]
-sql_table = "smart_api_data_test"
+sql_table = "uec_daily_smart"
 api_url = "https://smart.nhs.uk/"
 sites = ["S0189179","S89CFECF","S818235B","SF06F50A","S48446E1","S12C3F7C"]
 #"S0189179" #Barnet Hospital
@@ -29,14 +29,14 @@ period = 5
 [las]
 
 [las.base]
-sql_table = "uec_las_handover_test"
+sql_table = "uec_daily_las"
 indicator_list = ['hospital_site','total_handover','over_45mins','over_120mins']
 archive_file = 1
 
 [ecist_sitrep]
 
 [ecist_sitrep.base]
-sql_table = "uec_sitrep_ecist_test"
+sql_table = "uec_daily_ecist"
 indicator_list = ['ae_attendances','over12hoursfromarrival','extended_patients_occupied','g&acorebedsopen', 'number_of_discharges']
 org_list = ['RAL','RAP','RRV','RKE']
 archive_file = 1
@@ -51,17 +51,17 @@ archive_file = 1
 mo = "Daily Delay"
 mo_sheet_name = "NCL TOTAL"
 mo_table_heading = "Total by Hospital"
-mo_sql_table = "uec_tracker_mo_test"
+mo_sql_table = "uec_daily_tracker_mo"
 mo_date_overwrite = ""
 
 [live_tracker.p2]
 p2 = "P2 Capacity"
 p2_sheet_name = "P2 Capacity"
-p2_sql_table = "uec_tracker_p2_test"
+p2_sql_table = "uec_daily_tracker_p2"
 p2_date_overwrite = ""
 
 [live_tracker.vw]
 vw = "Virtual Ward"
 vw_sheet_name = "Historic System Value"
-vw_sql_table = "uec_tracker_vw_test"
+vw_sql_table = "uec_daily_tracker_vw"
 

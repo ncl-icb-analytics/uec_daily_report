@@ -32,7 +32,7 @@ pd.DataFrame([],
 
 ### Set which pipelines to run
 ### In order: smart API, las handover, ecist sitrep, live tracker datasets
-debug_run = [0,1,1,1]
+debug_run = [1,1,1,1]
 
 #Line break in terminal
 print()
@@ -111,7 +111,7 @@ if debug_run[0]:
             print(f"Upload successful for {site} for ", 
                   f"{date_start} to {date_end}")
 
-            print("\n")  
+    print("\n")  
 
 '''
 LAS import
@@ -173,7 +173,7 @@ if debug_run[1]:
         print(f"Upload successful for las")
 
         if env["ARCHIVE_LAS"]:
-            archive_data_file(las_file_path, las_data_dir, "las_handover", date_end.strftime("%Y-%m-%d"))
+            archive_data_file(las_file_path, las_data_dir, "las_handover", date_end.strftime("%Y-%m-%d"), ext=".xlsb")
 
     print("\n")
 '''
@@ -249,7 +249,7 @@ if debug_run[2]:
         print(f"Upload successful for ecist")
 
         if env["ARCHIVE_ECIST"]:
-            archive_data_file(filename, sitrep_file_path, "ecist_sitrep", date_end.strftime("%Y-%m-%d"))
+            archive_data_file(filename, sitrep_file_path, "ecist_sitrep", date_end.strftime("%Y-%m-%d"), ext=".xlsb")
 
     print("\n")
 
