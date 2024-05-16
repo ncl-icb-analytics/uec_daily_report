@@ -1,7 +1,8 @@
 import pandas as pd
 import ncl_sqlsnippets as snips
 import re
-from datetime import date, datetime, timedelta
+import datetime as dt
+from datetime import date, datetime as dtt, timedelta
 import os
 
 #pip install python-dotenv
@@ -31,7 +32,7 @@ def print_status(status, message):
 
 #Scans the new data folder for new data
 def scan_new_files(datasets, env):
-    dir = "N:/Performance&Transformation/Performance/NELCSUNCLMTFS/_DATA/UEC Daily Report/data/live_tracker_extract"
+    dir = getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA")
 
     #List of files in the new_data directory
     new_data_files = os.listdir(dir)
@@ -76,17 +77,17 @@ def import_settings_ef():
 #Archive the data file
 def archive_data_file(ds, file, date_extract):
     #Rename the current file to archive it
-    new_filename = f"N:/Performance&Transformation/Performance/NELCSUNCLMTFS/_DATA/UEC Daily Report/data/live_tracker_extract/archive/{ds}/{ds} {date_extract}.xlsx"
-
+    new_filename = f"{getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_ARCHIVE")}{ds}/{ds} {date_extract}.xlsx"
     rename(file, new_filename)
 
 #Get date_data from a dirty date column
 def get_date_data(df):
+
     date_str_arr = df["date_update"].values
 
     for i, date_str in enumerate(date_str_arr):
         #If recognised as a date object
-        if isinstance(date_str, datetime):
+        if isinstance(date_str, dtt):
             date_str_arr[i] = date_str.date()
         elif isinstance(date_str, date):
             pass
@@ -108,24 +109,21 @@ def get_date_data(df):
     return date_str_arr.max()
 
 #ef function for the Pathway MOs
-def ef_mo(params, ndf):
-
-    debug = params["DEBUG"]
-    archive = params["ARCHIVE_FILE"]
-    date_extract = params["date_extract"]
-
-    #Load settings
-    env = import_settings_ef()
+def ef_mo(env, ndf):
+    
+    archive = env["ARCHIVE_FILE"]
+    date_extract = env["date_extract"]
 
     #Process date_extract
     if env["MO_DATE_OVERWRITE"] != "":
         try:
-            datetime.datetime.strptime(env["MO_DATE_OVERWRITE"], "%Y-%m-%d")
+            dtt.strptime(env["MO_DATE_OVERWRITE"], "%Y-%m-%d")
         except ValueError:
             return 400, f"The Daily Delay MO_DATE_OVERWRITE value ({env['MO_DATE_OVERWRITE']}) is not a valid YYYY-MM-DD value." 
     
     #Load the file
-    df_src = pd.read_excel("N:/Performance&Transformation/Performance/NELCSUNCLMTFS/_DATA/UEC Daily Report/data/live_tracker_extract/" + ndf, sheet_name= env["MO_SHEET_NAME"])
+    df_src = pd.read_excel(getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA") + ndf, 
+                           sheet_name= env["MO_SHEET_NAME"])
 
 
     #Trim the src dataframe down to the table of relevant data
@@ -153,31 +151,29 @@ def ef_mo(params, ndf):
 
     if archive:
         try:
-            archive_data_file("mo", "N:/Performance&Transformation/Performance/NELCSUNCLMTFS/_DATA/UEC Daily Report/data/live_tracker_extract/" + ndf, date_data)
+            archive_data_file("mo", getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA") + ndf, date_data)
         except:
             return 402, f"Data uploaded but archive for file {ndf} failed."
 
     return 200, None
 
 #ef function for the P2 Occupancy
-def ef_p2(params, ndf):
-    debug = params["DEBUG"]
-    archive = params["ARCHIVE_FILE"]
-    date_extract = params["date_extract"]
+def ef_p2(env, ndf):
 
-    #Load settings
-    env = import_settings_ef()
+    archive = env["ARCHIVE_FILE"]
+    date_extract = env["date_extract"]
+
 
     #Process date_extract
     if env["P2_DATE_OVERWRITE"] != "":
         try:
-            datetime.datetime.strptime(env["P2_DATE_OVERWRITE"], "%Y-%m-%d")
+            dtt.strptime(env["P2_DATE_OVERWRITE"], "%Y-%m-%d")
         except ValueError:
             #return 400, f"The Daily Delay P2_DATE_OVERWRITE value ({env['P2_DATE_OVERWRITE']}) is not a valid YYYY-MM-DD value."
             print(f"The Daily Delay P2_DATE_OVERWRITE value ({env['P2_DATE_OVERWRITE']}) is not a valid YYYY-MM-DD value.")
 
     #Load the file
-    df_src = pd.read_excel("N:/Performance&Transformation/Performance/NELCSUNCLMTFS/_DATA/UEC Daily Report/data/live_tracker_extract/" + ndf, sheet_name= env["P2_SHEET_NAME"])
+    df_src = pd.read_excel(getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA") + ndf, sheet_name= env["P2_SHEET_NAME"])
 
     df_trimmed = df_src.copy().iloc[1:, 1:]
     df_trimmed.columns = df_src.iloc[0, 1:]
@@ -215,23 +211,19 @@ def ef_p2(params, ndf):
 
     if archive:
         try:
-            archive_data_file("p2", "N:/Performance&Transformation/Performance/NELCSUNCLMTFS/_DATA/UEC Daily Report/data/live_tracker_extract/" + ndf, date_data)
+            archive_data_file("p2", getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA") + ndf, date_data)
         except:
             return 402, f"Data uploaded but archive for file {ndf} failed."
 
     return 200, None
 
 #ef function for the Virtual Wards
-def ef_vw(params, ndf):
-    debug = params["DEBUG"]
-    archive = params["ARCHIVE_FILE"]
-    date_extract = params["date_extract"]
-
-    #Load settings
-    env = import_settings_ef()
+def ef_vw(env, ndf):
+    archive = env["ARCHIVE_FILE"]
+    date_extract = env["date_extract"]
 
     #Load the file
-    df_output = pd.read_excel("N:/Performance&Transformation/Performance/NELCSUNCLMTFS/_DATA/UEC Daily Report/data/live_tracker_extract/" + ndf, sheet_name= env["VW_SHEET_NAME"])
+    df_output = pd.read_excel(getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA") + ndf, sheet_name= env["VW_SHEET_NAME"])
 
     df_output.columns = ["date_data", "capacity", "occupied", "system_value", "includes_paediatric"]
 
@@ -245,7 +237,7 @@ def ef_vw(params, ndf):
 
     if archive:
         try:
-            archive_data_file("vw", f"N:/Performance&Transformation/Performance/NELCSUNCLMTFS/_DATA/UEC Daily Report/data/live_tracker_extract/" + ndf, date_extract)
+            archive_data_file("vw", getenv("NETWORKED_DATA_PATH_LIVE_TRACKER_NEW_DATA") + ndf, date_extract)
         except:
             return 402, f"Data uploaded but archive for file {ndf} failed."
 
