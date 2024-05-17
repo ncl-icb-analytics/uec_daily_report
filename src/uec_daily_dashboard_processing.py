@@ -17,11 +17,18 @@ from utils.global_params import *
 from utils.visualisation_functions import *
 from utils.network_management import *
 
+### Set which pipelines to run ###
+debug_run = {
+    "smart_api": False,
+    "las_handover": True,
+    "ecist_sitrep": True,
+    "live_tracker": True
+}
+
 ### Load environment variables 
 config = toml.load("./config.toml")
 load_dotenv(override=True)
 site_id_map = pd.read_csv("./lookups/org_lookup.csv")
-
 
 ### Generate file for intermediate wrangle:
 
@@ -30,17 +37,13 @@ pd.DataFrame([],
                       'ReportDate', 'metric_type', 'value']
              ).to_csv('inter.csv', mode='w', index=False, header=True)
 
-### Set which pipelines to run
-### In order: smart API, las handover, ecist sitrep, live tracker datasets
-debug_run = [1,1,1,1]
-
 #Line break in terminal
 print()
 
 '''
 Pull from smart API
 '''
-if debug_run[0]:
+if debug_run["smart_api"]:
     print("#########   Processing SMART API Pipeline   #########")
 
     ### Import settings from the .env file
@@ -116,7 +119,7 @@ if debug_run[0]:
 '''
 LAS import
 '''
-if debug_run[1]:
+if debug_run["las_handover"]:
 
     print("#########   Processing LAS Handover Pipeline   #########")
 
@@ -173,13 +176,16 @@ if debug_run[1]:
         print(f"Upload successful for las")
 
         if env["ARCHIVE_LAS"]:
-            archive_data_file(las_file_path, las_data_dir, "las_handover", date_end.strftime("%Y-%m-%d"), ext=".xlsb")
+            try:
+                archive_data_file(las_file_path, las_data_dir, "las_handover", date_end.strftime("%Y-%m-%d"), ext=".xlsb")
+            except FileExistsError:
+                print(f"Unable to archive las file as there is already a file with {date_end.strftime("%Y-%m-%d")} data in the archive folder.")
 
     print("\n")
 '''
 ECIST SITREP
 '''
-if debug_run[2]:
+if debug_run["ecist_sitrep"]:
 
     print("#########   Processing ECIST Sitrep Pipeline   #########")
 
@@ -249,14 +255,17 @@ if debug_run[2]:
         print(f"Upload successful for ecist")
 
         if env["ARCHIVE_ECIST"]:
-            archive_data_file(filename, sitrep_file_path, "ecist_sitrep", date_end.strftime("%Y-%m-%d"), ext=".xlsb")
+            try:
+                archive_data_file(filename, sitrep_file_path, "ecist_sitrep", date_end.strftime("%Y-%m-%d"), ext=".xlsb")
+            except FileExistsError:
+                print(f"Unable to archive ecist file as there is already a file with {date_end.strftime("%Y-%m-%d")} data in the archive folder.")
 
     print("\n")
 
 '''
 Live Tracker
 '''
-if debug_run[3]:
+if debug_run["live_tracker"]:
 
     print("#########   Processing Live Tracker Pipeline   #########")
 
