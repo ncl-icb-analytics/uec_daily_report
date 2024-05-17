@@ -19,7 +19,7 @@ from utils.network_management import *
 
 ### Set which pipelines to run ###
 debug_run = {
-    "smart_api": False,
+    "smart_api": True,
     "las_handover": True,
     "ecist_sitrep": True,
     "live_tracker": True
