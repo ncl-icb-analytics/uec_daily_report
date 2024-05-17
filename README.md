@@ -1,25 +1,32 @@
-# NCL sample project folder
+# UEC Daily Report
 
-This git repository contains a shell that should be used as the default structure for new projects
-in the analytical team.  It won't fit all circumstances perfectly, and you can make changes and issue a 
-pull request for new features / changes.
+<!-- ABOUT THE PROJECT -->
+## About The Project
 
-The aim of this template is two-fold: firstly to give a common structure for analytical projects to aid
-reproducibility, secondly to allow for additional security settings as default to prevent accidental upload of files that should not be committed to Git and GitHub.
+This git repository contains an all in one python script to process daily updates for the UEC Daily Dashboard. The source files for each dataset used in the dashboard need to be prepared manually but this code will process them and upload them to the sandpit such that the excel dashboard can pull new data from a refresh. This is designed to be used with v2.1 of the UEC Daily Dashboard Template excel.
 
-__Please update/replace this README file with one relevant to your project__
+The intention is to replace this report with a daily infographic but this code is designed to be used until said replacement is developed.
 
-## To use this template, please use the following practises:
+In general, it is recommended to refer to the SOP for the dashboard for the most complete guide on maintaining the dashboard:
+`N:\Performance&Transformation\Performance\NELCSUNCLMTFS\_DATA\UEC Daily Report\SOP Archive`
 
-* Put any data files in the `data` folder.  This folder is explicitly named in the .gitignore file.  A further layer of security is that all xls, xlsx, csv and pdf files are also explicit ignored in the whole folder as well.  ___If you need to commit one of these files, you must use the `-f` (force) command in `commit`, but you must be sure there is no identifiable data.__
-* Save any documentation in the `docs` file.  This does not mean you should avoid commenting your code, but if you have an operating procedure or supporting documents, add them to this folder.
-* Please save all output: data, formatted tables, graphs etc. in the output folder.  This is also implicitly ignored by git, but you can use the `-f` (force) command in `commit` to add any you wish to publish to github.
+## First Time Installations
 
+Refer to the SOP stored in the below directory for instructions on what is required to run this code:
+`N:\Performance&Transformation\Performance\NELCSUNCLMTFS\_DATA\UEC Daily Report\SOP Archive`
 
-### Please also consider the following:
-* Linting your code.  This is a formatting process that follows a rule set.  We broadly encourage the tidyverse standard, and recommend the `lintr` package.
-* Comment your code to make sure others can follow.
-* Consider your naming conventions: we recommend `snake case` where spaces are replaced by underscores and no capitals are use. E.g. `outpatient_referral_data`
+## Usage
 
+In order to run, daily data files are required for most of the datasets involved. These files are saved at:
+`N:\Performance&Transformation\Performance\NELCSUNCLMTFS\_DATA\UEC Daily Report\data`
+with details on how to store the files in the SOP for the dashboard.
 
+When all daily preperations are complete, open the uec_daily_dashboard_processing.py file in the src folder and execute the code. This should bring up a terminal with details on the current execution.
+
+## Licence
 This repository is dual licensed under the [Open Government v3]([https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/) & MIT. All code can outputs are subject to Crown Copyright.
+
+## Contact
+Jake Kealey - jake.kealey@nhs.net
+
+Project Link: https://github.com/ncl-icb-analytics/uec_daily_report
