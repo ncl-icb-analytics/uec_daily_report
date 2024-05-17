@@ -153,7 +153,7 @@ def processing_data_for_storage(config, api_pull, date_start, date_end):
 
     #map local siteid to universial ids
     #data = data.rename(columns={"siteId":"site_code_smart"})
-    site_id_map = pd.read_csv("./lookups/org_lookup_smart.csv")
+    site_id_map = pd.read_csv("./lookups/org_lookup.csv")
     site_id_map = site_id_map[site_id_map["dataset"] == "smart_api"]
 
     data = data.merge(site_id_map, how="left", left_on="siteId", right_on="dataset_reference")
