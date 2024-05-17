@@ -21,11 +21,18 @@ def get_delete_query(date_start, date_end, sites, env):
     sql_schema =  env["SQL_SCHEMA"]
     sql_table =  env["SQL_TABLE"]
 
-    query = f"""
+    if sql_table == "uec_daily_smart":
+        query = f"""
                 DELETE FROM [{sql_database}].[{sql_schema}].[{sql_table}] 
-                WHERE date_data >= '{date_start}' 
-                AND date_data <= '{date_end}'
+                WHERE reportDate >= '{date_start}' 
+                AND reportDate <= '{date_end}'
                 """
+    else:
+        query = f"""
+                    DELETE FROM [{sql_database}].[{sql_schema}].[{sql_table}] 
+                    WHERE date_data >= '{date_start}' 
+                    AND date_data <= '{date_end}'
+                    """
     
     if sites:
         sites_string = ""
