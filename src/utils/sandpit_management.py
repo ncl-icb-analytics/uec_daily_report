@@ -29,10 +29,10 @@ def get_delete_query(date_start, date_end, sites, env):
                 """
     else:
         query = f"""
-                    DELETE FROM [{sql_database}].[{sql_schema}].[{sql_table}] 
-                    WHERE date_data >= '{date_start}' 
-                    AND date_data <= '{date_end}'
-                    """
+                DELETE FROM [{sql_database}].[{sql_schema}].[{sql_table}] 
+                WHERE date_data >= '{date_start}' 
+                AND date_data <= '{date_end}'
+                """
     
     if sites:
         sites_string = ""

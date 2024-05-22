@@ -101,13 +101,14 @@ if debug_run["smart_api"]:
 
             inter.to_csv('inter.csv', mode='a', index=False, header=False)
 
-            #Upload and manage datasets
-            query_del = get_delete_query(date_start, date_end, [site], env)
             # this needs to be generic enough for all 4 pipelines
             res_for_upload = res.merge(smart_id_map, how="left", 
                                        left_on="siteId", 
                                        right_on="dataset_reference")
             res_for_upload.drop(["dataset", "dataset_reference"], axis=1)
+
+            #Upload and manage datasets
+            query_del = get_delete_query(date_start, date_end, [res_for_upload["provider_code"][0]], env)
 
             upload_request_data(res_for_upload, query_del, env)
 
