@@ -110,7 +110,7 @@ def get_date_data(df):
     return date_str_arr.max()
 
 def create_tracker_table(engine, ds):
-    create_table_file = f"./docs/sql/live_tracker/create_table_trackers_{ds}.sql"
+    create_table_file = f"./src/sql_table_create/create_table_trackers_{ds}.sql"
 
     f = open(create_table_file, 'r')
     sql_query = f.read()

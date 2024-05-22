@@ -163,4 +163,4 @@ cython_debug/
 .vscode/
 
 #Exemptions
-!lookups/org_lookup_smart.csv
+!lookups/org_lookup.csv
