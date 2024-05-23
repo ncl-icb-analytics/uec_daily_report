@@ -169,7 +169,7 @@ if debug_run["las_handover"]:
         las_data = las_data.rename_axis(None, axis = 1)
 
         date_end = las_data.max().iloc[0].date()
-        date_start = (date_end - timedelta(days=14))
+        date_start = las_data.min().iloc[0].date()
 
         # upload to sandpit - once suficiently generalised
         query_del = get_delete_query(date_start, date_end, ["RAL01", "RAL26", "RALC7", "RAP", "RKE", "RRV"], env)
@@ -248,10 +248,11 @@ if debug_run["ecist_sitrep"]:
         new_sitrep_data = new_sitrep_data.rename_axis(None, axis = 1)
 
         date_end = new_sitrep_data.max().iloc[0].date()
-        date_start = (date_end - timedelta(days=14))
+        date_start = new_sitrep_data.min().iloc[0].date()
 
         # upload to sandpit - once suficiently generalised
-        query_del = get_delete_query(date_start, date_end, ["RAL01" "RAL26", "RALC7", "RAP", "RKE", "RRV"], env)
+        query_del = get_delete_query(date_start, date_end, ["RAL01", "RAL26", "RALC7", "RAP", "RKE", "RRV"], env)
+
         upload_request_data(new_sitrep_data, query_del, env)
         print(f"Upload successful for ecist")
 
