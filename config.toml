@@ -32,6 +32,7 @@ period = 5
 sql_table = "uec_daily_las"
 indicator_list = ['hospital_site','total_handover','over_45mins','over_120mins']
 archive_file = 1
+extract_number_of_days = 40
 
 [ecist_sitrep]
 

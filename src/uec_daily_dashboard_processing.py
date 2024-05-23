@@ -150,7 +150,7 @@ if debug_run["las_handover"]:
         las_data = las_data[['period', 'hospital_site','indicatorKeyName','value']].reset_index(drop=True) 
         ## Period of interest only
         las_data['period'] = pd.to_datetime(las_data['period'], unit='D', origin='1899-12-30')#, errors='coerce')
-        las_data['cutoff'] = pd.Timestamp(dtt.now()).date()-pd.to_timedelta(14, unit='d')
+        las_data['cutoff'] = pd.Timestamp(dtt.now()).date()-pd.to_timedelta(env["EXTRACT_NUMBER_OF_DAYS"], unit='d')
         las_data = las_data.query("period >= cutoff")
         ## Add site reference codes
         las_id_map = site_id_map[site_id_map["dataset"] == "las"]
@@ -169,7 +169,7 @@ if debug_run["las_handover"]:
         las_data = las_data.rename_axis(None, axis = 1)
 
         date_end = las_data.max().iloc[0].date()
-        date_start = las_data.min().iloc[0].date()
+        date_start = (date_end - timedelta(days=env["EXTRACT_NUMBER_OF_DAYS"]))
 
         # upload to sandpit - once suficiently generalised
         query_del = get_delete_query(date_start, date_end, ["RAL01", "RAL26", "RALC7", "RAP", "RKE", "RRV"], env)
