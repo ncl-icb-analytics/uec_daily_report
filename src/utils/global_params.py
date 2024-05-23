@@ -32,7 +32,8 @@ def import_settings(config, ds):
                 "SQL_SCHEMA": config["database"]["sql_schema"],
                 "SQL_TABLE": config["las"]["base"]["sql_table"],
                 "WAIT_COOLOFF": config["database"]["sql_cooloff"],
-                "ARCHIVE_LAS": config["las"]["base"]["archive_file"]
+                "ARCHIVE_LAS": config["las"]["base"]["archive_file"],
+                "EXTRACT_NUMBER_OF_DAYS": config["las"]["base"]["extract_number_of_days"]
             }
         return params_las
     
