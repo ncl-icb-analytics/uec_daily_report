@@ -30,13 +30,9 @@ period = 5
 
 [las.base]
 sql_table = "uec_daily_las"
-indicator_list = ['hospital_site','total_handover','over_45mins','over_120mins']
+indicator_list = ['hospital_site','total_handover','over_15mins', 'over_30mins', 'over_45mins', 'over_60mins', 'over_120mins', 'over_180mins']
 archive_file = 1
 extract_number_of_days = 40
-historic_load = 1
-historic_schema = "JakeK"
-historic_table = "uec_warehouse_las"
-historic_indicators = ['hospital_site','total_handover','over_45mins','over_120mins']
 
 
 [ecist_sitrep]
@@ -44,12 +40,9 @@ historic_indicators = ['hospital_site','total_handover','over_45mins','over_120m
 [ecist_sitrep.base]
 sql_table = "uec_daily_ecist"
 indicator_list = ['ae_attendances','over12hoursfromarrival','extended_patients_occupied','g&acorebedsopen', 'number_of_discharges']
+indicator_list_full = ['accbedsoccupied', 'accbedsopen', 'ae_attendances', 'beds_occupied_by_long_stay_patients_14_plus_days', 'unavailablebedstrandedpatients', 'over12hoursfromarrival','extended_patients_occupied','g&acorebedsopen', 'g&atotalbedsoccupied', 'number_of_discharges']
 org_list = ['RAL','RAP','RRV','RKE']
 archive_file = 1
-historic_load = 1
-historic_schema = "JakeK"
-historic_table = "uec_warehouse_ecist"
-historic_indicators = ['ae_attendances','over12hoursfromarrival','extended_patients_occupied','g&acorebedsopen', 'number_of_discharges']
 
 [ecist_sitrep.date]
 date_range = 35
