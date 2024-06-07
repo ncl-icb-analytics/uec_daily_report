@@ -141,8 +141,8 @@ def processing_data_for_storage(config, api_pull, date_start, date_end):
     data = data[['reportDate', 'siteId','indicatorKeyName','value']].reset_index(drop=True)
     data = data.pivot(index=['siteId', 'reportDate'], columns='indicatorKeyName', values='value')
     data = data.reset_index()
-    data['breaches'] = data['breaches'].astype('float', errors='ignore')
-    data['no_of_attendances'] = data['no_of_attendances'].astype('float')
+    data['breaches'] = pd.to_numeric(data['breaches'], errors='coerce')
+    data['no_of_attendances'] = pd.to_numeric(data['no_of_attendances'], errors='coerce')
     data['performance_4_hour'] = 1-(data['breaches']/data['no_of_attendances'])
     data = data.melt(id_vars = ['siteId','reportDate'])
 
