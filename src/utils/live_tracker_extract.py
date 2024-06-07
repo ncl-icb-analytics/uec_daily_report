@@ -207,20 +207,26 @@ def ef_p2(env, ndf):
     df_trimmed = df_src.copy().iloc[1:, 1:]
     df_trimmed.columns = df_src.iloc[0, 1:]
 
-    #Remove total and subtotal rows
-    df_trimmed = df_trimmed[df_trimmed["Provider"].notna()]
-    df_trimmed.loc[:, "Units"] = df_trimmed["Units"].str.replace('\n', " ")
+    #Attempt to process files but raise expection if column name changes
+    try:
 
-    #Add columns for output metrics
-    df_trimmed["beds_available"] = \
-        df_trimmed["Max Capacity"] + \
-        df_trimmed["Beds closed to new admissions"]
+        #Remove total and subtotal rows
+        df_trimmed = df_trimmed[df_trimmed["Provider"].notna()]
+        df_trimmed.loc[:, "Units"] = df_trimmed["Units"].str.replace('\n', " ")
 
-    df_trimmed["beds_occupied"] = \
-        df_trimmed["P2 Rehab Beds Currently Occupied"] + \
-        df_trimmed["P2 Non-Rehab Beds Currently Occupied"] + \
-        df_trimmed["Planned admissions for today"] - \
-        df_trimmed["Expected Discharges for today"]
+        #Add columns for output metrics
+        df_trimmed["beds_available"] = \
+            df_trimmed["Max Capacity"] + \
+            df_trimmed["Beds closed to new admissions"]
+
+        df_trimmed["beds_occupied"] = \
+            df_trimmed["P2 Rehab Beds Currently Occupied"] + \
+            df_trimmed["P2 Non-Rehab Beds Currently Occupied"] + \
+            df_trimmed["Planned admissions in next 24hrs"] - \
+            df_trimmed["Expected Discharges for today"]
+        
+    except Exception as e:
+        return 400, f"Column {e} no longer found in file."
 
     df_trimmed = df_trimmed[["Provider", "Units", "beds_available", "beds_occupied", "Last Updated (please give time and date)"]]
     df_trimmed.columns = ["provider", "unit", "beds_available", "beds_occupied", "date_update"]
