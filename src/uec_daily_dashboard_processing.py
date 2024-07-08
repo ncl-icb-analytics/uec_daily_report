@@ -21,7 +21,7 @@ from utils.network_management import *
 debug_run = {
     "smart_api": True,
     "las_handover": True,
-    "ecist_sitrep": True,
+    "ecist_sitrep": False, #No Longer Used
     "live_tracker": True
 }
 
