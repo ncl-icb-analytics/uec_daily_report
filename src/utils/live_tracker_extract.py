@@ -49,7 +49,8 @@ def scan_new_files(datasets, env):
         for ndf in new_data_files:
             if os.path.isfile(os.path.join(dir, ndf)) and ndf.endswith(".xlsx"):
                 if ds_name in ndf or ds in ndf:
-                    scanned_files[ds].append(ndf)
+                    if not(ndf.startswith("~$")):
+                        scanned_files[ds].append(ndf)
 
     return scanned_files
 
@@ -202,7 +203,10 @@ def ef_p2(env, ndf):
             print(f"The Daily Delay P2_DATE_OVERWRITE value ({env['P2_DATE_OVERWRITE']}) is not a valid YYYY-MM-DD value.")
 
     #Load the file
-    df_src = pd.read_excel(getenv("NETWORKED_DATA_PATH_LIVE_TRACKER") + ndf, sheet_name= env["P2_SHEET_NAME"])
+    try:
+        df_src = pd.read_excel(getenv("NETWORKED_DATA_PATH_LIVE_TRACKER") + ndf, sheet_name= env["P2_SHEET_NAME"])
+    except PermissionError as e:
+        return 400, e
 
     df_trimmed = df_src.copy().iloc[1:, 1:]
     df_trimmed.columns = df_src.iloc[0, 1:]
@@ -224,9 +228,20 @@ def ef_p2(env, ndf):
             df_trimmed["P2 Non-Rehab Beds Currently Occupied"] + \
             df_trimmed["Planned admissions in next 24hrs"] - \
             df_trimmed["Expected Discharges for today"]
-        
+
+    #Error handling for duplicate columns
+    except ValueError as ve:
+        #Check if issue is duplicate columns
+        #if ve.args[0][0:14] == "cannot reindex":
+            #Duplicate
+            #pass
+
+        return 400, (f"Duplicate columns found in '{ndf}', " + 
+                     "please remove duplicate columns from the source file.") 
+    
+    #Error handling for missing columns
     except Exception as e:
-        return 400, f"Column {e} no longer found in file."
+        return 400, f"Column {e} no longer found in '{ndf}'. Please check if there is data missing from the source file."
 
     df_trimmed = df_trimmed[["Provider", "Units", "beds_available", "beds_occupied", "Last Updated (please give time and date)"]]
     df_trimmed.columns = ["provider", "unit", "beds_available", "beds_occupied", "date_update"]
