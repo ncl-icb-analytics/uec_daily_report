@@ -17,7 +17,7 @@ FROM (
 	FROM [Data_Lab_NCL_Dev].[JakeK].[uec_daily_smart_vw]
 
 	WHERE [reportDate] >= GETDATE()-40
-	AND IndicatorKeyName IN ('breaches','no_of_attendances','dta_in_ed_at_time_of_reporting','medically_optimised')
+	AND IndicatorKeyName IN ('breaches','no_of_attendances','dta_in_ed_at_time_of_reporting','medically_optimised', 'opel_level')
 
 	--Filter out CFH DTA and MO data as they are not reported in the dashboard
 	AND (siteName != 'Chase Farm Hospital' OR IndicatorKeyName NOT IN ('dta_in_ed_at_time_of_reporting','medically_optimised'))
@@ -26,5 +26,5 @@ FROM (
 PIVOT (
 	SUM(metric_value)
 	FOR metric_name IN
-		([breaches], [no_of_attendances], [dta_in_ed_at_time_of_reporting], [medically_optimised])
+		([breaches], [no_of_attendances], [dta_in_ed_at_time_of_reporting], [medically_optimised], [opel_level])
 ) AS pvt
