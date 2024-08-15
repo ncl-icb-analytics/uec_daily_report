@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from os import getenv, rename
 
 #Outputs the result status of each dataset
-def print_status(status, message):
+def print_status(status, message, env=None):
 
     if status == 200:
         print(f"New data processed for {message}")
@@ -24,6 +24,11 @@ def print_status(status, message):
 
     elif status == 402:
         print(status, " ", message)
+
+    elif status == 403:
+        print("An error occured when processing the Virtual Ward file.", 
+              f"Please check the '{env["VW_SHEET_NAME"]}' sheet in the file",
+              "for errors.")
 
     elif status == 404:
         print("No new data files found.")
@@ -49,7 +54,8 @@ def scan_new_files(datasets, env):
         for ndf in new_data_files:
             if os.path.isfile(os.path.join(dir, ndf)) and ndf.endswith(".xlsx"):
                 if ds_name in ndf or ds in ndf:
-                    scanned_files[ds].append(ndf)
+                    if not(ndf.startswith("~$")):
+                        scanned_files[ds].append(ndf)
 
     return scanned_files
 
@@ -202,7 +208,10 @@ def ef_p2(env, ndf):
             print(f"The Daily Delay P2_DATE_OVERWRITE value ({env['P2_DATE_OVERWRITE']}) is not a valid YYYY-MM-DD value.")
 
     #Load the file
-    df_src = pd.read_excel(getenv("NETWORKED_DATA_PATH_LIVE_TRACKER") + ndf, sheet_name= env["P2_SHEET_NAME"])
+    try:
+        df_src = pd.read_excel(getenv("NETWORKED_DATA_PATH_LIVE_TRACKER") + ndf, sheet_name= env["P2_SHEET_NAME"])
+    except PermissionError as e:
+        return 400, e
 
     df_trimmed = df_src.copy().iloc[1:, 1:]
     df_trimmed.columns = df_src.iloc[0, 1:]
@@ -224,9 +233,20 @@ def ef_p2(env, ndf):
             df_trimmed["P2 Non-Rehab Beds Currently Occupied"] + \
             df_trimmed["Planned admissions in next 24hrs"] - \
             df_trimmed["Expected Discharges for today"]
-        
+
+    #Error handling for duplicate columns
+    except ValueError as ve:
+        #Check if issue is duplicate columns
+        #if ve.args[0][0:14] == "cannot reindex":
+            #Duplicate
+            #pass
+
+        return 400, (f"Duplicate columns found in '{ndf}', " + 
+                     "please remove duplicate columns from the source file.") 
+    
+    #Error handling for missing columns
     except Exception as e:
-        return 400, f"Column {e} no longer found in file."
+        return 400, f"Column {e} no longer found in '{ndf}'. Please check if there is data missing from the source file."
 
     df_trimmed = df_trimmed[["Provider", "Units", "beds_available", "beds_occupied", "Last Updated (please give time and date)"]]
     df_trimmed.columns = ["provider", "unit", "beds_available", "beds_occupied", "date_update"]
@@ -285,7 +305,7 @@ def ef_vw(env, ndf):
             
         snips.upload_to_sql(df_output, engine, env["VW_SQL_TABLE"], env["SQL_SCHEMA"], replace=False, chunks=300)
     except:
-        return 401, ndf
+        return 403, ndf
 
     if archive:
         try:
@@ -314,7 +334,7 @@ def ef_controller (dataset, params, new_data_files):
                     print_status(500, f"Dataset {dataset} is not supported.")
 
                 #If an issue occurs then report the issue
-                print_status(status, message)
+                print_status(status, message, params)
 
             except Exception as e:
                 print(400, e)
