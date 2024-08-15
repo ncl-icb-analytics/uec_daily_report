@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from os import getenv, rename
 
 #Outputs the result status of each dataset
-def print_status(status, message):
+def print_status(status, message, env=None):
 
     if status == 200:
         print(f"New data processed for {message}")
@@ -24,6 +24,11 @@ def print_status(status, message):
 
     elif status == 402:
         print(status, " ", message)
+
+    elif status == 403:
+        print("An error occured when processing the Virtual Ward file.", 
+              f"Please check the '{env["VW_SHEET_NAME"]}' sheet in the file",
+              "for errors.")
 
     elif status == 404:
         print("No new data files found.")
@@ -300,7 +305,7 @@ def ef_vw(env, ndf):
             
         snips.upload_to_sql(df_output, engine, env["VW_SQL_TABLE"], env["SQL_SCHEMA"], replace=False, chunks=300)
     except:
-        return 401, ndf
+        return 403, ndf
 
     if archive:
         try:
@@ -329,7 +334,7 @@ def ef_controller (dataset, params, new_data_files):
                     print_status(500, f"Dataset {dataset} is not supported.")
 
                 #If an issue occurs then report the issue
-                print_status(status, message)
+                print_status(status, message, params)
 
             except Exception as e:
                 print(400, e)
