@@ -99,7 +99,7 @@ def get_date_data(df):
         elif isinstance(date_str, date):
             pass
         #Not recognised as a date object
-        else:
+        elif type(date_str) == type(""):
             nums = re.split(r'\D+', date_str)
 
             if len(nums[0]) == 4:
@@ -112,6 +112,9 @@ def get_date_data(df):
 
                 #Save as a date type value
                 date_str_arr[i] = date(year, int(nums[1]), int(nums[0]))
+        else:
+            print("Warning, the P2 file is missing date(s) in the Last Updated column.")
+            date_str_arr[i] = date(1970, 1, 1)
 
     return date_str_arr.max()
 
