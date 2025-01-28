@@ -88,7 +88,7 @@ def archive_data_file_lt(data_file, dir, ds, date_label):
     rename(data_file, new_filename)
 
 #Get date_data from a dirty date column
-def get_date_data(df):
+def get_date_data(df, date_extract, ds, ndf):
 
     date_str_arr = df["date_update"].values
 
@@ -113,8 +113,17 @@ def get_date_data(df):
                 #Save as a date type value
                 date_str_arr[i] = date(year, int(nums[1]), int(nums[0]))
         else:
-            print("Warning, the P2 file is missing date(s) in the Last Updated column.")
+            print(f"Warning, the {ds} file '{ndf}' is missing date(s) in the Last Updated column.")
             date_str_arr[i] = date(1970, 1, 1)
+
+    #Check for any dates in the future
+    for date_value in date_str_arr:
+        if str(date_value) >= date_extract:
+            print((f"Warning: The {ds} file '{ndf}' contained a date from either" 
+                  " today or the future and won't be processed.\nPlease confirm the"
+                  " file is for the correct date and correct any typos if the wrong" 
+                  " date is used in the file."))
+            return False
 
     return date_str_arr.max()
 
@@ -156,7 +165,11 @@ def ef_mo(env, ndf):
 
     df_provider_table = df_provider_table.reset_index(drop=True)
 
-    date_data = get_date_data(df_provider_table)
+    date_data = get_date_data(df_provider_table, date_extract, ds, ndf)
+
+    #Check if the file contains valid dates
+    if not date_data:
+        return 400, ""
 
     #Format the dataframe for uploading
     df_output = pd.melt(df_provider_table.iloc[:, :4], id_vars=["provider"], var_name="metric_name", value_name="metric_value")
@@ -232,7 +245,8 @@ def ef_p2(env, ndf):
             df_trimmed["Beds closed to new admissions"]
 
         df_trimmed["beds_occupied"] = \
-            df_trimmed["P2 Rehab Beds Currently Occupied"] + \
+            df_trimmed["P2 Multipathology Rehab Beds Currently Occupied"] + \
+            df_trimmed["P2 Stroke/Neuro Beds Currently Occupied"] + \
             df_trimmed["P2 Non-Rehab Beds Currently Occupied"] + \
             df_trimmed["Planned admissions in next 24hrs"] - \
             df_trimmed["Expected Discharges for today"]
@@ -257,7 +271,12 @@ def ef_p2(env, ndf):
     df_output = df_trimmed.copy().iloc[:, :4]
 
     df_output["date_extract"] = date_extract
-    date_data = get_date_data(df_trimmed)
+    date_data = get_date_data(df_trimmed, date_extract, ds, ndf)
+
+    #Check if the date in the file is valid and halt processing if not
+    if not date_data:
+        return 400, ""
+
     df_output["date_data"] = date_data
 
     engine = snips.connect(env["SQL_ADDRESS"], env["SQL_DATABASE"])
