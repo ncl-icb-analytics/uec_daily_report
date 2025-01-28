@@ -232,7 +232,8 @@ def ef_p2(env, ndf):
             df_trimmed["Beds closed to new admissions"]
 
         df_trimmed["beds_occupied"] = \
-            df_trimmed["P2 Rehab Beds Currently Occupied"] + \
+            df_trimmed["P2 Multipathology Rehab Beds Currently Occupied"] + \
+            df_trimmed["P2 Stroke/Neuro Beds Currently Occupied"] + \
             df_trimmed["P2 Non-Rehab Beds Currently Occupied"] + \
             df_trimmed["Planned admissions in next 24hrs"] - \
             df_trimmed["Expected Discharges for today"]
