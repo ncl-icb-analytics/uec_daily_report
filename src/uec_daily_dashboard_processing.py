@@ -142,7 +142,9 @@ if debug_run["las_handover"]:
         # filter to keep only relevent data
         ## NCL only
         las_data = las_data.query('stp_code == "QMJ"').reset_index(drop = True) # NCL STP only
-        las_data = las_data.drop(['stp_code', 'stp_short', 'weekday', 'id'], axis=1) # columns not needed 
+        # Update Mar 2025:
+        # I have removed 'id' from the list below as it is no longer in the source file
+        las_data = las_data.drop(['stp_code', 'stp_short', 'weekday'], axis=1) # columns not needed 
         ## Metrics of interest only
         las_data = las_data.melt(id_vars = ['hospital_site', 'period'], var_name='indicatorKeyName', value_name='value') # lengthen data to allow filter
         IndicatorList = config["las"]["base"]['indicator_list'] # import metric list
