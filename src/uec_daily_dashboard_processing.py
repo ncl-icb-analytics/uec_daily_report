@@ -19,10 +19,10 @@ from utils.network_management import *
 
 ### Set which pipelines to run ###
 debug_run = {
-    "smart_api": True,
+    "smart_api": 0,
     "las_handover": True,
     "ecist_sitrep": False, #No Longer Used
-    "live_tracker": True
+    "live_tracker": 0
 }
 
 ### Load environment variables 
@@ -126,63 +126,47 @@ if debug_run["las_handover"]:
 
     ### Import settings from the .env file
     env = import_settings(config, "las")
+
     las_data_dir = getenv("NETWORKED_DATA_PATH_LAS")
 
     # Load the sheet into a dataframe
     try:
-        las_file_path = fetch_excel_file(las_data_dir, ext=".xlsb")
+        las_file_path = fetch_excel_file(las_data_dir, ext=".xlsx")
     except Exception as e:
         print(e)
-    else:
-        las_data = pd.read_excel(las_file_path, sheet_name= "Data_Ambulance_Handovers")
 
-        las_data.rename(columns=clean_column_name, inplace=True)
-        las_data.columns = map(str.lower, las_data.columns)
+    #Get report date
+    ##ASSUMES the date is written in cell I3
+    las_data_header = pd.read_excel(las_file_path, sheet_name= "Sheet1", skiprows=1)
+    date_data = las_data_header.iloc[0].iloc[8].date()
 
-        # filter to keep only relevent data
-        ## NCL only
-        las_data = las_data.query('stp_code == "QMJ"').reset_index(drop = True) # NCL STP only
-        # Update Mar 2025:
-        # I have removed 'id' from the list below as it is no longer in the source file
-        las_data = las_data.drop(['stp_code', 'stp_short', 'weekday'], axis=1) # columns not needed 
-        ## Metrics of interest only
-        las_data = las_data.melt(id_vars = ['hospital_site', 'period'], var_name='indicatorKeyName', value_name='value') # lengthen data to allow filter
-        IndicatorList = config["las"]["base"]['indicator_list'] # import metric list
-        las_data = las_data.query('indicatorKeyName in @IndicatorList') # filter metrics list
-        las_data = las_data[['period', 'hospital_site','indicatorKeyName','value']].reset_index(drop=True) 
-        ## Period of interest only
-        las_data['period'] = pd.to_datetime(las_data['period'], unit='D', origin='1899-12-30')#, errors='coerce')
-        las_data['cutoff'] = pd.Timestamp(dtt.now()).date()-pd.to_timedelta(env["EXTRACT_NUMBER_OF_DAYS"], unit='d')
-        las_data = las_data.query("period >= cutoff")
-        ## Add site reference codes
-        las_id_map = site_id_map[site_id_map["dataset"] == "las"]
-        las_data = las_data.merge(las_id_map, how="left", left_on="hospital_site", right_on="dataset_reference")
+    #Load the latest data
+    las_data = pd.read_excel(las_file_path, sheet_name= "Sheet1", skiprows=5)
+    las_data.rename(columns=clean_column_name, inplace=True)
+    las_data.columns = map(str.lower, las_data.columns)
 
-        ## add to inter for graphing
-        las_data['source'] = 'las'
-        las_data['metric_type'] = 'actual'
-        las_data.rename(columns={'period': 'date_data'}, inplace=True)
-        las_data = las_data[['source', 'indicatorKeyName', 'provider_code', 'date_data', 'metric_type', 'value']]
-        las_data.to_csv('inter.csv', mode='a', index=False, header=False)
+    # filter to keep only relevent data
+    ## Add site reference codes
+    las_id_map = site_id_map[site_id_map["dataset"] == "las"]
+    las_data = las_data.merge(las_id_map, how="left", left_on="hospital_site", right_on="dataset_reference")
 
-        ## Sandpit upload
-        # reshape for sandpit
-        las_data = las_data.pivot(index=['date_data', 'provider_code'], columns='indicatorKeyName', values='value').reset_index()
-        las_data = las_data.rename_axis(None, axis = 1)
+    ## NCL only
+    las_data = las_data.dropna(subset=["provider_code"])
 
-        date_end = las_data.max().iloc[0].date()
-        date_start = las_data.min().iloc[0].date()
+    #Relevant metrics only
+    las_data = las_data[["provider_code", "total_handover", "over_15mins", "over_30mins", "over_45mins", "over_60mins", "over_120mins", "over_180mins"]]
+    las_data["date_data"] = date_data
 
-        # upload to sandpit - once suficiently generalised
-        query_del = get_delete_query(date_start, date_end, ["RAL01", "RAL26", "RALC7", "RAP", "RKE", "RRV"], env)
-        upload_request_data(las_data, query_del, env)
-        print(f"Upload successful for las")
+    #Upload the data
+    query_del = get_delete_query(date_data, date_data, ["RAL01", "RAL26", "RALC7", "RAP", "RKE", "RRV"], env)
+    upload_request_data(las_data, query_del, env)
+    print(f"Upload successful for las")
 
-        if env["ARCHIVE_LAS"]:
+    if env["ARCHIVE_LAS"]:
             try:
-                archive_data_file(las_file_path, las_data_dir, "las_handover", date_end.strftime("%Y-%m-%d"), ext=".xlsb")
+                archive_data_file(las_file_path, las_data_dir, "las_handover", date_data.strftime("%Y-%m-%d"), ext=".xlsx")
             except FileExistsError:
-                print(f"Unable to archive las file as there is already a file with {date_end.strftime("%Y-%m-%d")} data in the archive folder.")
+                print(f"Unable to archive las file as there is already a file with {date_data.strftime("%Y-%m-%d")} data in the archive folder.")
 
     print("\n")
 '''
