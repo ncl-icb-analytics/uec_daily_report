@@ -19,10 +19,10 @@ from utils.network_management import *
 
 ### Set which pipelines to run ###
 debug_run = {
-    "smart_api": 0,
+    "smart_api": True,
     "las_handover": True,
     "ecist_sitrep": False, #No Longer Used
-    "live_tracker": 0
+    "live_tracker": True
 }
 
 ### Load environment variables 
