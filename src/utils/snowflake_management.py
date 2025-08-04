@@ -9,14 +9,6 @@ from snowflake.connector.pandas_tools import write_pandas
 def add_delay(seconds):
     time.sleep(int(seconds))
 
-# Sandpit data pull
-
-def get_sandpit_data(env, query):
-    engine = snips.connect(env["SQL_ADDRESS"], env["SQL_DATABASE"])
-    res = snips.execute_sfw(engine, query)
-    return res
-
-
 # Build the delete query to remove duplicate data
 def get_delete_query(date_start, date_end, sites, destination):
 
@@ -34,45 +26,6 @@ def get_delete_query(date_start, date_end, sites, destination):
         query += f"AND SITE_CODE IN  ({sites_string[:-2]})"
     
     return query
-
-'''
-This needs unesting
-'''
-
-#Upload the request data
-def upload_request_data(data, query_del, env, chunks=100):
-
-    #Delete existing data
-    
-
-    #Upload the data
-    try:
-        #Connect to the database
-        engine = snips.connect(env["SQL_ADDRESS"], env["SQL_DATABASE"])
-        if (snips.table_exists(engine, env["SQL_TABLE"], env["SQL_SCHEMA"])):
-            #Delete the existing data
-            snips.execute_query(engine, query_del)
-        #Upload the new data
-        snips.upload_to_sql(data, engine, env["SQL_TABLE"], env["SQL_SCHEMA"], replace=False, chunks=chunks)
-    except pyodbc.OperationalError:
-        print("Disconnected from the sandpit. Waiting before trying again...")
-        #If the connection drops, wait and try again
-        add_delay(env["WAIT_COOLOFF"])
-
-        try:
-            #Connect to the database
-            engine = snips.connect(env["SQL_ADDRESS"], env["SQL_DATABASE"])
-            if (snips.table_exists(engine, env["SQL_TABLE"], env["SQL_SCHEMA"])):
-                #Delete the existing data
-                snips.execute_query(engine, query_del)
-            #Upload the new data
-            snips.upload_to_sql(data, engine, env["SQL_TABLE"], env["SQL_SCHEMA"], replace=False, chunks=chunks)
-        except pyodbc.OperationalError as e:
-            raise Exception("Connectioned dropped again so cancelling execution")
-        except pyodbc.ProgrammingError as e:
-            raise Exception (e)
-    except pyodbc.ProgrammingError as e:
-            raise Exception (e)
 
 def upload_df(ctx, df, destination, replace=False, log=True):
 
