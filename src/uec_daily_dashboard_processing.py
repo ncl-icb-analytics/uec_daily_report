@@ -12,7 +12,7 @@ from sqlalchemy import types
 
 from utils.smart_api import *
 from utils.live_tracker_extract import *
-from utils.sandpit_management import *
+from src.utils.snowflake_management import *
 from utils.global_params import *
 from utils.visualisation_functions import *
 from utils.network_management import *
