@@ -4,6 +4,8 @@ import re
 from datetime import date, datetime as dtt
 import os
 
+from utils.sandpit_management import *
+
 #pip install python-dotenv
 from dotenv import load_dotenv
 from os import getenv, rename
@@ -127,17 +129,8 @@ def get_date_data(df, date_extract, ds, ndf):
 
     return date_str_arr.max()
 
-def create_tracker_table(engine, ds):
-    create_table_file = f"./src/sql_table_create/create_table_trackers_{ds}.sql"
-
-    f = open(create_table_file, 'r')
-    sql_query = f.read()
-    f.close()
-
-    snips.execute_query(engine, sql_query)
-
 #ef function for the Pathway MOs
-def ef_mo(env, ndf):
+def ef_mo(env, ndf, ctx):
     
     archive = env["ARCHIVE_FILE"]
     date_extract = env["date_extract"]
@@ -173,10 +166,7 @@ def ef_mo(env, ndf):
 
     #Format the dataframe for uploading
     df_output = pd.melt(df_provider_table.iloc[:, :4], id_vars=["provider"], var_name="metric_name", value_name="metric_value")
-    df_output["date_extract"] = date_extract
     df_output["date_data"] = date_data
-
-    engine = snips.connect(env["SQL_ADDRESS"], env["SQL_DATABASE"])
 
     #Use org lookup file to get provider codes
     site_id_map = pd.read_csv("./lookups/org_lookup.csv")
@@ -186,15 +176,24 @@ def ef_mo(env, ndf):
                                        right_on="dataset_reference")
     df_output = df_output.drop(["dataset", "dataset_reference", "provider"], axis=1)
 
-    if not snips.table_exists(engine, env['MO_SQL_TABLE'], env['SQL_SCHEMA']):
-        try:
-            create_tracker_table(engine, ds)
-        except Exception as e:
-            print(e)
-            return 402, f"Unable to create table for {ds}. Try running the create table sql in docs/sql/live_tracker for this dataset."
+    #Snowflake change, map column names to SQL output
+    mo_rename = {
+        "date_data":"DATE_DATA", 
+        "provider_code":"PROVIDER_CODE",
+        "metric_name":"METRIC_NAME",
+        "metric_value":"METRIC_VALUE"
+    }
+        
+    database = getenv("DATABASE") 
+    schema = getenv("SCHEMA")
+    destination_table = getenv("TABLE_MO")
+    destination = f"{database}.{schema}.{destination_table}"
+
+    df_mo_out = df_output.rename(columns=mo_rename)
 
     try:
-        snips.upload_to_sql(df_output, engine, env["MO_SQL_TABLE"], env["SQL_SCHEMA"], replace=False, chunks=300)
+        upload_df(ctx, df_mo_out, destination, replace=False, log=False)
+
     except:
         return 401, ndf
 
@@ -207,7 +206,7 @@ def ef_mo(env, ndf):
     return 200, f"{ds} {date_data}.xlsx."
 
 #ef function for the P2 Occupancy
-def ef_p2(env, ndf):
+def ef_p2(env, ndf, ctx):
 
     archive = env["ARCHIVE_FILE"]
     date_extract = env["date_extract"]
@@ -270,7 +269,6 @@ def ef_p2(env, ndf):
 
     df_output = df_trimmed.copy().iloc[:, :4]
 
-    df_output["date_extract"] = date_extract
     date_data = get_date_data(df_trimmed, date_extract, ds, ndf)
 
     #Check if the date in the file is valid and halt processing if not
@@ -279,17 +277,24 @@ def ef_p2(env, ndf):
 
     df_output["date_data"] = date_data
 
-    engine = snips.connect(env["SQL_ADDRESS"], env["SQL_DATABASE"])
+    #Snowflake change, map column names to SQL output
+    p2_rename = {
+        "date_data":"DATE_DATA", 
+        "provider":"PROVIDER",
+        "unit":"UNIT",
+        "beds_available":"BEDS_AVAILABLE",
+        "beds_occupied":"BEDS_OCCUPIED"
+    }
+        
+    database = getenv("DATABASE") 
+    schema = getenv("SCHEMA")
+    destination_table = getenv("TABLE_P2")
+    destination = f"{database}.{schema}.{destination_table}"
 
-    if not snips.table_exists(engine, env['P2_SQL_TABLE'], env['SQL_SCHEMA']):
-        try:
-            create_tracker_table(engine, ds)
-        except Exception as e:
-            print(e)
-            return 402, f"Unable to create table for {ds}. Try running the create table sql in docs/sql/live_tracker for this dataset."
+    df_p2_out = df_output.rename(columns=p2_rename)
 
     try:
-        snips.upload_to_sql(df_output, engine, env["P2_SQL_TABLE"], env["SQL_SCHEMA"], replace=False, chunks=300)
+        upload_df(ctx, df_p2_out, destination, replace=False, log=False)
     except:
         return 401, ndf
 
@@ -302,7 +307,7 @@ def ef_p2(env, ndf):
     return 200, f"{ds} {date_data}.xlsx."
 
 #ef function for the Virtual Wards
-def ef_vw(env, ndf):
+def ef_vw(env, ndf, ctx):
     archive = env["ARCHIVE_FILE"]
     date_extract = env["date_extract"]
     data_dir = getenv("NETWORKED_DATA_PATH_LIVE_TRACKER")
@@ -313,19 +318,30 @@ def ef_vw(env, ndf):
 
     df_output.columns = ["date_data", "capacity", "occupied", "system_value", "includes_paediatric"]
 
-    engine = snips.connect(env["SQL_ADDRESS"], env["SQL_DATABASE"])
+    #Convert the date column to dates
+    df_output["date_data"] = df_output["date_data"].dt.date
+
+    #Convert the paediatric flag to a boolean
+    df_output['includes_paediatric'] = df_output['includes_paediatric'].astype(bool)
+
+    #Snowflake change, map column names to SQL output
+    vw_rename = {
+        "date_data":"DATE_DATA", 
+        "capacity":"CAPACITY",
+        "occupied":"OCCUPIED",
+        "system_value":"SYSTEM_VALUE",
+        "includes_paediatric":"IS_INCLUDES_PAEDIATRIC"
+    }
+
+    database = getenv("DATABASE") 
+    schema = getenv("SCHEMA")
+    destination_table = getenv("TABLE_VW")
+    destination = f"{database}.{schema}.{destination_table}"
+
+    df_vw_out = df_output.rename(columns=vw_rename)
 
     try:
-        if snips.table_exists(engine, env['VW_SQL_TABLE'], env['SQL_SCHEMA']):
-            snips.execute_query(engine, f"TRUNCATE TABLE {env['SQL_DATABASE']}.{env['SQL_SCHEMA']}.{env['VW_SQL_TABLE']};")
-        else:
-            try:
-                create_tracker_table(engine, ds)
-            except Exception as e:
-                print(e)
-                return 402, f"Unable to create table for {ds}. Try running the create table sql in docs/sql/live_tracker for this dataset."
-            
-        snips.upload_to_sql(df_output, engine, env["VW_SQL_TABLE"], env["SQL_SCHEMA"], replace=False, chunks=300)
+        upload_df(ctx, df_vw_out, destination, replace=True, log=False)
     except:
         return 403, ndf
 
@@ -338,7 +354,7 @@ def ef_vw(env, ndf):
     return 200, f"{ds} {date_extract}.xlsx."
 
 #Control function to decide which ef function to use
-def ef_controller (dataset, params, new_data_files):
+def ef_controller (dataset, params, new_data_files, ctx):
 
     if dataset == 'vw' and len(new_data_files) > 1:
         print_status(501, f"Virtual Ward extraction only supports single file additions. Please ensure there is only 1 Virtual Ward tracker file in the new_data directory.")
@@ -347,11 +363,11 @@ def ef_controller (dataset, params, new_data_files):
             try:
                 #Run the relevant extract function
                 if dataset == "mo":
-                    status, message = ef_mo(params, ndf)
+                    status, message = ef_mo(params, ndf, ctx)
                 elif dataset == "p2":
-                    status, message = ef_p2(params, ndf)
+                    status, message = ef_p2(params, ndf, ctx)
                 elif dataset == "vw":
-                    status, message = ef_vw(params, ndf)
+                    status, message = ef_vw(params, ndf, ctx)
                 else:
                     print_status(500, f"Dataset {dataset} is not supported.")
 
