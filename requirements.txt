@@ -5,30 +5,53 @@
 
 # Python version = 3.12.*
 
+# Snowflake packages
+aiobotocore==2.23.0
+fsspec==2025.7.0
+
+jaraco.classes==3.4.0
+jaraco.context==6.0.1
+keyring==25.6.0
+more-itertools==10.7.0
+pywin32-ctypes==0.2.3
+
+snowflake==1.6.0
+snowflake-connector-python==3.16.0
+snowflake-snowpark-python==1.34.0
+snowflake-ml-python==1.8.6
+snowflake._legacy==1.0.1
+snowflake.core==1.6.0
+
 # Data manipulation
-numpy==1.26.0
-pandas==2.2.2
-pyxlsb==1.0.10
-openpyxl==3.1.2
+numpy==1.26.4
+pandas==2.3.1
+
+# Data visualisation
+# plotly == 6.0.1
+# matplotlib == 3.10.1
+# great-tables == 0.17.0
+
+# Interface
+# streamlit == 1.44.1
+# dash == 3.0.2
 
 # SQL connections
-pyodbc==5.1.0
-sqlalchemy==2.0.30
-ncl_sqlsnippets==1.3.0
+pyodbc==5.2.0
+sqlalchemy==2.0.40
 
 # Excel output
-#openpyxl==3.0.9
+openpyxl==3.1.5
 
 # Testing
-#pytest==6.2.5
-#pytest-html==3.1.1
+# pytest==8.3.5
 
-# Dependencies of the above packages
-#ipykernel==6.9.0
-#nbformat==5.1.3
+# Requests
+# beautifulsoup4==4.13.3
+requests==2.32.4
+
+# Environment variables
+python-dotenv==1.1.0
 toml==0.10.2
-#pathlib2==2.3.6
 
-#Temporary environment
-python-dotenv==1.0.1
-requests==2.31.0
+# Dependencies
+fingertips-py==0.4.2
