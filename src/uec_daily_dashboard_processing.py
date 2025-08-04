@@ -17,6 +17,8 @@ from utils.global_params import *
 from utils.visualisation_functions import *
 from utils.network_management import *
 
+from snowflake.connector import connect
+
 ### Set which pipelines to run ###
 debug_run = {
     "smart_api": True,
@@ -38,6 +40,21 @@ pd.DataFrame([],
 
 #Line break in terminal
 print()
+
+# Establish Snowflake connection
+#Establish Snowflake connection
+ctx = connect(
+    account=getenv("ACCOUNT"),
+    user=getenv("USER"),
+    authenticator=getenv("AUTHENTICATOR"),
+    role=getenv("ROLE"),
+    warehouse=getenv("WAREHOUSE"),
+    database=getenv("DATABASE"),
+    schema=getenv("SCHEMA")
+)
+
+database = getenv("DATABASE") 
+schema = getenv("SCHEMA") 
 
 '''
 Pull from smart API
@@ -94,22 +111,38 @@ if debug_run["smart_api"]:
                 except:
                     raise Exception("Failed twice so cancelling execution.")
 
-            ##Convert API response data into universal format for future work
-            inter = processing_data_for_storage(config, res, 
-                                                date_start, date_end)
-
-            inter.to_csv('inter.csv', mode='a', index=False, header=False)
-
             # this needs to be generic enough for all 4 pipelines
             res_for_upload = res.merge(smart_id_map, how="left", 
                                        left_on="siteId", 
                                        right_on="dataset_reference")
             res_for_upload.drop(["dataset", "dataset_reference"], axis=1)
 
-            #Upload and manage datasets
-            query_del = get_delete_query(date_start, date_end, [res_for_upload["provider_code"][0]], env)
+            #Set the destination table
+            destination_table = getenv("TABLE_SMART")
+            destination = f"{database}.{schema}.{destination_table}"
 
-            upload_request_data(res_for_upload, query_del, env)
+            #Upload and manage datasets
+            query_del = get_delete_query(date_start, date_end, [res_for_upload["provider_code"][0]], destination)
+
+            #Snowflake change, map column names to SQL output
+            smart_rename = {
+                "responseChildId":"RESPONSE_CHILD_ID", 
+                "value":"VALUE", 
+                "reportDate":"DATE_DATA", 
+                "timestamp":"DATETIME_UPLOADED", 
+                "siteId":"SITE_CODE_SMART",
+                "siteName":"SITE_NAME", 
+                "indicatorName":"INDICATOR_NAME", 
+                "indicatorKeyName":"INDICATOR_KEY_NAME",
+                "provider_code":"SITE_CODE"
+            }
+
+            df_smart_out = res_for_upload[smart_rename.keys()].rename(columns=smart_rename)
+
+            success = execute_query(ctx, query_del)
+
+            if success:
+                upload_df(ctx, df_smart_out, destination, replace=False, log=False)
 
             print(f"Upload successful for {site} for ", 
                   f"{date_start} to {date_end}")
@@ -157,13 +190,54 @@ if debug_run["las_handover"]:
         ## NCL only
         las_data = las_data.dropna(subset=["provider_code"])
 
-        #Relevant metrics only
-        las_data = las_data[["provider_code", "total_handover", "over_15mins", "over_30mins", "over_45mins", "over_60mins", "over_120mins", "over_180mins"]]
         las_data["date_data"] = date_data
 
+        #Snowflake change, map column names to SQL output
+        las_rename = {
+            "%_over_15mins_rank":"OVER_15_MIN_PERCENT_RANK",
+            "date_data":"DATE_DATA", 
+            "hospital_site":"SITE_NAME", 
+            "non_blue_conveyances":"CONVEYANCES_NONBLUE",
+            "total_handover":"TOTAL_HANDOVER",
+            "average_arrival_to_patient_handover":"ARRIVAL_TO_PATIENT_HANDOVER_AVERAGE",
+            "under_15mins":"UNDER_15_MIN_COUNT",
+            "over_15mins":"OVER_15_MIN_COUNT",
+            "%_over_15mins":"OVER_15_MIN_PERCENT",
+            "ratio_of_over_15mins":"OVER_15_MIN_RATIO",
+            "average_overrun_per_breach_(mins)":"OVER_15_MIN_OVERRUN_AVERAGE",
+            "total_time_lost_>_15_mins_(mins)":"TOTAL_TIME_LOST_OVER_15_MIN_MINUTES",
+            "total_time_lost_>_15_mins_(hrs)":"TOTAL_TIME_LOST_OVER_15_MIN_HOURS",
+            "over_30mins":"OVER_30_MIN_COUNT",
+            "%_over_30mins":"OVER_30_MIN_PERCENT",
+            "total_time_lost_>30_mins_(hrs)":"TOTAL_TIME_LOST_OVER_30_MIN_HOURS",
+            "over_45mins":"OVER_45_MIN_COUNT",
+            "%_over_45mins":"OVER_45_MIN_PERCENT",
+            "total_time_lost_>45mins_(hrs)":"TOTAL_TIME_LOST_OVER_45_MIN_HOURS",
+            "over_60mins":"OVER_60_MIN_COUNT",
+            "%_over_60mins":"OVER_60_MIN_PERCENT",
+            "total_time_lost_>60_mins_(hrs)":"TOTAL_TIME_LOST_OVER_60_MIN_HOURS",
+            "over_120mins":"OVER_120_MIN_COUNT",
+            "%_over120mins":"OVER_120_MIN_PERCENT",
+            "over_180mins":"OVER_180_MIN_COUNT",
+            "%_over_180mins":"OVER_180_MIN_PERCENT",
+            "total_ed_conveyances":"CONVEYANCES_TOTAL_ED",
+            "provider_code":"SITE_CODE"
+        }
+
+        df_las_out = las_data[las_rename.keys()].rename(columns=las_rename)
+
+        #Set the destination table
+        destination_table = getenv("TABLE_LAS")
+        destination = f"{database}.{schema}.{destination_table}"
+
         #Upload the data
-        query_del = get_delete_query(date_data, date_data, ["RAL01", "RAL26", "RALC7", "RAP", "RKE", "RRV"], env)
-        upload_request_data(las_data, query_del, env)
+        query_del = get_delete_query(date_data, date_data, ["RAL01", "RAL26", "RALC7", "RAP", "RKE", "RRV"], destination)
+        success = execute_query(ctx, query_del)
+
+        if success:
+            upload_df(ctx, df_las_out, destination, replace=False, log=False)
+
+        #upload_request_data(las_data, query_del, env)
         print(f"Upload successful for las: {las_file}")
 
         if env["ARCHIVE_LAS"]:
@@ -196,6 +270,6 @@ if debug_run["live_tracker"]:
         if new_data_files[ds] == []:
             print_status(404, None)
         else:
-            ef_controller(ds, env, new_data_files[ds])
+            ef_controller(ds, env, new_data_files[ds], ctx)
 
     print("\n")     
