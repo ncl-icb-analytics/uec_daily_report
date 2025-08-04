@@ -12,7 +12,7 @@ from sqlalchemy import types
 
 from utils.smart_api import *
 from utils.live_tracker_extract import *
-from src.utils.snowflake_management import *
+from utils.snowflake_management import *
 from utils.global_params import *
 from utils.visualisation_functions import *
 from utils.network_management import *
@@ -21,7 +21,7 @@ from snowflake.connector import connect
 
 ### Set which pipelines to run ###
 debug_run = {
-    "smart_api": True,
+    "smart_api": 0,
     "las_handover": True,
     "live_tracker": True
 }

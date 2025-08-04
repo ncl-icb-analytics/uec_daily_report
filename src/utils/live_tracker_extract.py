@@ -4,7 +4,7 @@ import re
 from datetime import date, datetime as dtt
 import os
 
-from src.utils.snowflake_management import *
+from utils.snowflake_management import *
 
 #pip install python-dotenv
 from dotenv import load_dotenv
