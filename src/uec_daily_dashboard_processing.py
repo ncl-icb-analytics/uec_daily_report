@@ -21,7 +21,7 @@ from snowflake.connector import connect
 
 ### Set which pipelines to run ###
 debug_run = {
-    "smart_api": 0,
+    "smart_api": True,
     "las_handover": True,
     "live_tracker": True
 }
