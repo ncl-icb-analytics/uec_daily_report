@@ -118,6 +118,8 @@ if debug_run["smart_api"]:
             res_for_upload.drop(["dataset", "dataset_reference"], axis=1)
 
             #Set the destination table
+            database = getenv("DATABASE") 
+            schema = getenv("SCHEMA")
             destination_table = getenv("TABLE_SMART")
             destination = f"{database}.{schema}.{destination_table}"
 
