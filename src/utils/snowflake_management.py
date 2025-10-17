@@ -82,20 +82,43 @@ def upload_df(ctx, df, destination, replace=False, log=True):
     
     return success
 
-def execute_query(ctx, query):
+def execute_query(ctx, query, sfw=False):
+
+    """
+    Executes a given SQL query using a snowflake connection.
+    Note this is for queries where you do not expect to handle the result
+
+    inputs:
+    - ctx: Snowflake connection object 
+    (https://docs.snowflake.com/en/developer-guide/python-connector/python-connector-connect)
+    - query: String containing a SQL query
+    - sfw: Boolean that will allow for SFW queries to run and return results
+
+    output: 
+    - For SFW queries: 
+        - Results of query as a dataframe 
+        - Boolean value for the success of the query execution
+    - For other queries: 
+        - Boolean value for the success of the query execution
+    """
+
     cur = ctx.cursor()
 
     success = False
     try:
         cur.execute(query)
+        if sfw:
+            res = cur.fetch_all_pandas()
         success = True
 
     except Exception as e:
         print("SQL failed with this message:", e)
-        #Needed to undo editing existing data as not IS_LATEST if upload fails
-        cur.execute("ROLLBACK") 
+        res = None
 
     finally:
         cur.close()
 
-    return success
+    if sfw:
+        return res, success
+    else:
+        return success
